@@ -52,7 +52,7 @@ class Day01Part2: BehaviorSpec() { init {
             }
         }
         When("searching and parsing first") {
-            val found = parseFirstDigit(str)
+            val found = parseFirstDigit(str, true)
             Then("it should find the value") {
                 found shouldBe 1
             }
@@ -65,7 +65,7 @@ class Day01Part2: BehaviorSpec() { init {
             }
         }
         When("searching and parsing last") {
-            val found = parseLastDigit(str)
+            val found = parseLastDigit(str, true)
             Then("it should find the value") {
                 found shouldBe 3
             }
@@ -123,8 +123,8 @@ class Day01Part2: BehaviorSpec() { init {
 } }
 
 fun parseCalibrations(input: String, includeSpelled: Boolean = false) = input.split("\n").map { line ->
-    val firstDigit = if (includeSpelled) parseFirstDigit(line) else line.first { it.isDigit() }
-    val lastDigit = if (includeSpelled) parseLastDigit(line) else line.last { it.isDigit() }
+    val firstDigit = parseFirstDigit(line, includeSpelled)
+    val lastDigit = parseLastDigit(line, includeSpelled)
     "$firstDigit$lastDigit".toInt()
 }
 
@@ -149,15 +149,15 @@ val converterMap = mapOf(
     "seven" to 7,
     "eight" to 8,
     "nine" to 9)
-val digitMap = (1..9).map { it.toString() to it }.toMap()
+val digitMap = (1..9).associateBy { it.toString() }
 val completeConverterMap = converterMap + digitMap
 
-fun parseFirstDigit(str: String): Int {
-    val found = findFirstOf(str, completeConverterMap.keys)
+fun parseFirstDigit(str: String, includeSpelled: Boolean = false): Int {
+    val found = findFirstOf(str, if (includeSpelled) completeConverterMap.keys else digitMap.keys)
     return completeConverterMap[found] ?: throw IllegalArgumentException()
 }
 
-fun parseLastDigit(str: String): Int {
-    val found = findLastOf(str, completeConverterMap.keys)
+fun parseLastDigit(str: String, includeSpelled: Boolean = false): Int {
+    val found = findLastOf(str, if (includeSpelled) completeConverterMap.keys else digitMap.keys)
     return completeConverterMap[found] ?: throw IllegalArgumentException()
 }
