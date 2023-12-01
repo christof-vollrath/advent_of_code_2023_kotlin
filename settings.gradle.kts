@@ -11,4 +11,4 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
 }
 
-rootProject.name = "advent_of_code_2022_kotlin"
+rootProject.name = "advent_of_code_2023_kotlin"
