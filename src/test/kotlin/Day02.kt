@@ -97,10 +97,10 @@ fun parseCubeGame(line: String): CubeGame {
     if (match.groupValues.size != 3) throw IllegalArgumentException("Wrong number of elements parsed")
     val id = match.groupValues[1].toInt()
     val moves = match.groupValues[2].split(";").map { move ->
-        move.split(",").map { cubeWithNrStr ->
-                val (nrStr, color) = cubeWithNrStr.trim().split(" ")
-                color to nrStr.toInt()
-            }.toMap()
+        move.split(",").associate { cubeWithNrStr ->
+            val (nrStr, color) = cubeWithNrStr.trim().split(" ")
+            color to nrStr.toInt()
+        }
     }
     return CubeGame(id, moves)
 }
