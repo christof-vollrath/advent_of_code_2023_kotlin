@@ -3,7 +3,7 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 
 
-val exampleInput = """
+val exampleInputDay02 = """
         Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
         Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
         Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
@@ -16,7 +16,7 @@ class Day02Part1: BehaviorSpec() { init {
     val restriction = mapOf("red" to 12, "green" to 13, "blue" to 14)
 
     Given("example input") {
-        val cubeGames = parseCubeGames(exampleInput)
+        val cubeGames = parseCubeGames(exampleInputDay02)
         Then("should have found right number of games") {
             cubeGames.size shouldBe 5
         }
@@ -52,7 +52,7 @@ class Day02Part1: BehaviorSpec() { init {
 class Day02Part2: BehaviorSpec() { init {
 
     Given("example input") {
-        val cubeGames = parseCubeGames(exampleInput)
+        val cubeGames = parseCubeGames(exampleInputDay02)
         Then("it should find the fewest number of cubes for game 1") {
             val game1 = cubeGames[0]
             fewestNumberCubes(game1) shouldBe mapOf( "red" to 4, "green" to 2, "blue" to 6 )
