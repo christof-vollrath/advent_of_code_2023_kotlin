@@ -38,7 +38,7 @@ class Day04Part1: BehaviorSpec() { init {
                 }
             }
             When("calculating the sum of all worths") {
-                val sum = scratchCards.sumOf { calculateWorth(it.winningNumbers, it.yourNumbers)}
+                val sum = scratchCards.sumOf { it.worth } // worth should be already set in scratchard
                 Then("it should calculate the right sum") {
                     sum shouldBe 13
                 }
@@ -48,14 +48,60 @@ class Day04Part1: BehaviorSpec() { init {
 
     Given("exercise input") {
         val scratchCards = parseScratchCards(readResource("inputDay04.txt")!!)
-        When("calculating worth") {
-            val sum = scratchCards.sumOf { calculateWorth(it.winningNumbers, it.yourNumbers)}
+        When("summing worth") {
+            val sum = scratchCards.sumOf { it.worth }
             Then("it should have the right sum") {
                 sum shouldBe 19135
             }
         }
     }
 } }
+
+class Day04Part2: BehaviorSpec() { init {
+
+    Given("example input") {
+        val scratchCards = parseScratchCards(exampleInputDay04)
+        val scratchCardsWithNumber = scratchCards.map { ScratchCardWithNumber(it, 1) }
+        When("playing stretch game") {
+            playScretchCards(scratchCardsWithNumber)
+            Then("card 1 should have nr 1") {
+                scratchCardsWithNumber[0].nr shouldBe 1
+            }
+            Then("card 2 should have nr 2") {
+                scratchCardsWithNumber[1].nr shouldBe 2
+            }
+            Then("card 3 should have nr 4") {
+                scratchCardsWithNumber[2].nr shouldBe 4
+            }
+            When("summing all card numbers after play is finished") {
+                Then("it should have calculated the right sum") {
+                    scratchCardsWithNumber.sumOf { it.nr } shouldBe 5704953
+                }
+            }
+        }
+    }
+
+    Given("exercise input") {
+        val scratchCards = parseScratchCards(readResource("inputDay04.txt")!!)
+        val scratchCardsWithNumber = scratchCards.map { ScratchCardWithNumber(it, 1) }
+        playScretchCards(scratchCardsWithNumber)
+        When("summing all card numbers after play is finished") {
+            Then("it should have calculated the right sum") {
+                scratchCardsWithNumber.sumOf { it.nr } shouldBe 30
+            }
+        }
+    }
+} }
+
+fun playScretchCards(scratchCardsWithNumber: List<ScratchCardWithNumber>) {
+    for (i1 in scratchCardsWithNumber.indices) {
+        val (scratchCard, nr) = scratchCardsWithNumber[i1]
+        for (i2 in 1..scratchCard.nrMatching) {
+            if (i1 + i2 < scratchCardsWithNumber.size)
+                scratchCardsWithNumber[i1 + i2].nr += nr
+        }
+    }
+}
 
 fun findMatchingNumbers(winningNumbers: Set<Int>, yourNumbers: Set<Int>) = winningNumbers intersect yourNumbers
 
@@ -76,4 +122,10 @@ fun parseScratchCard(line: String): ScratchCard {
     return ScratchCard(id, winningNumbers.toSet(), yourNumbers.toSet())
 }
 
-data class ScratchCard(val id: Int, val winningNumbers: Set<Int>, val yourNumbers: Set<Int>)
+data class ScratchCard(val id: Int, val winningNumbers: Set<Int>, val yourNumbers: Set<Int>, val nrMatching: Int = findMatchingNumbers(winningNumbers, yourNumbers).size) {
+    val worth: Int
+        get() = if (nrMatching <= 1) nrMatching
+        else 2.0.pow((nrMatching - 1).toDouble()).toInt()
+}
+
+data class ScratchCardWithNumber(val scratchCard: ScratchCard, var nr: Int)
