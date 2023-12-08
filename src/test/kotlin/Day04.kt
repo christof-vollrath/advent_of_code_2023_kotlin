@@ -75,7 +75,7 @@ class Day04Part2: BehaviorSpec() { init {
             }
             When("summing all card numbers after play is finished") {
                 Then("it should have calculated the right sum") {
-                    scratchCardsWithNumber.sumOf { it.nr } shouldBe 5704953
+                    scratchCardsWithNumber.sumOf { it.nr } shouldBe 30
                 }
             }
         }
@@ -87,7 +87,7 @@ class Day04Part2: BehaviorSpec() { init {
         playScretchCards(scratchCardsWithNumber)
         When("summing all card numbers after play is finished") {
             Then("it should have calculated the right sum") {
-                scratchCardsWithNumber.sumOf { it.nr } shouldBe 30
+                scratchCardsWithNumber.sumOf { it.nr } shouldBe 5704953
             }
         }
     }
