@@ -1,6 +1,9 @@
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.sqrt
 
 class Day06Part: BehaviorSpec() { init {
     Given("a race") {
@@ -39,7 +42,9 @@ class Day06Part: BehaviorSpec() { init {
     Given("another race") {
         val race = Race(30, 200)
         Then("finding wining strategies") {
-            findWinningStrategies(race).size shouldBe 9
+            val winningStrategies = findWinningStrategies(race)
+            winningStrategies shouldBe listOf(11, 12, 13, 14, 15, 16, 17, 18, 19)
+            winningStrategies.size shouldBe 9
         }
     }
     Given("example") {
@@ -78,10 +83,77 @@ class Day06Part: BehaviorSpec() { init {
     }
 }}
 
-data class Race(val time: Int, val distance: Int)
+class Day06Part2: BehaviorSpec() { init {
+    Given("another race") {
+        val race = Race(30, 200)
+        Then("finding wining strategies fast by using quadratic formula") {
+            val winningStrategies = findWinningStrategiesFast(race)
+            winningStrategies shouldBe (11L to 19L)
+            winningStrategies.second - winningStrategies.first + 1 shouldBe 9
+        }
+    }
+    Given("exercise part 1") {
+        val races = listOf(
+            Race(54, 239),
+            Race(70, 1142),
+            Race(82, 1295),
+            Race(75, 1253)
+        )
+        When("finding strategies using the new fast algorithm based on quadratic formula") {
+            val strategiesForRaces = races.map { findWinningStrategiesFast(it) }
+            val strategyCountForRaces = strategiesForRaces.map { it.second - it.first + 1 }
+            then("multiplying counts should give result") {
+                val result = strategyCountForRaces.reduce { acc, i -> acc * i }
+                result shouldBe 800280
+            }
+        }
+    }
 
-fun simulateRace(race: Race, buttonPressTime: Int) = max((race.time - buttonPressTime), 0) * buttonPressTime
+    Given("exercise") {
+        val race = Race(71530, 940200)
+        When("finding strategies") {
+            val strategiesForRace = findWinningStrategiesFast(race)
+            Then("strategy counts should be right") {
+                strategiesForRace.second - strategiesForRace.first + 1 shouldBe 71503
+            }
+        }
+    }
+
+    Given("example") {
+        val race = Race(54708275L, 239114212951253L)
+        When("finding strategies") {
+            val strategiesForRace = findWinningStrategiesFast(race)
+            Then("strategy counts should be right") {
+                strategiesForRace.second - strategiesForRace.first + 1 shouldBe 45128024L
+            }
+        }
+    }
+
+}}
+
+data class Race(val time: Long, val distance: Long)
+
+fun simulateRace(race: Race, buttonPressTime: Long) = max((race.time - buttonPressTime), 0) * buttonPressTime
 
 fun findWinningStrategies(race: Race) = (0..race.time).map {
     time -> time to simulateRace(race, time)
 }.filter { it.second > race.distance }.map { it.first }
+
+/**
+ * Winning strategies:
+ *   (raceTime - buttonPressTime) * buttonPressTime > distance
+ *   - buttonPressTime^2 + raceTime * buttonPressTime > distance
+ *   buttonPressTime^2 - raceTime * buttonPressTime < -distance
+ * Applying quadratic formula
+ *   buttonPressTime = raceTime / 2 + sqrt( (raceTime/2)^2 - distance)
+ *                     raceTime / 2 - sqrt( (raceTime/2)^2 - distance)
+ */
+fun findWinningStrategiesFast(race: Race): Pair<Long, Long> {
+    val delta = 0.000001
+    val h = sqrt( (race.time / 2.0) * (race.time / 2.0) - race.distance)
+    val from = race.time / 2.0 - h
+    val to = race.time / 2.0 + h
+    val fromLong = ceil(from + delta).toLong()
+    val toLong = floor(to - delta).toLong()
+    return fromLong to toLong
+}
