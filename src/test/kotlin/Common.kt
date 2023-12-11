@@ -2,6 +2,19 @@ import kotlin.math.abs
 
 fun readResource(name: String) = ClassLoader.getSystemClassLoader().getResource(name)?.readText()
 
+fun <E> List<E>.permute():List<List<E>> {
+    if (size == 1) return listOf(this)
+    val perms = mutableListOf<List<E>>()
+    val sub = get(0)
+    for(perm in drop(1).permute())
+        for (i in 0..perm.size){
+            val newPerm=perm.toMutableList()
+            newPerm.add(i, sub)
+            perms.add(newPerm)
+        }
+    return perms
+}
+
 data class Coord2(val x: Int, val y: Int) {
     infix fun manhattanDistance(other: Coord2): Int = abs(x - other.x) + abs(y - other.y)
     operator fun plus(direction: Coord2) = Coord2(x + direction.x, y + direction.y)
