@@ -40,6 +40,12 @@ class Day12Part1: BehaviorSpec() { init {
             findDamagedGroups(springStates) shouldBe listOf(1, 1, 3)
         }
     }
+    Given("list of spring states partially") {
+        val springStates = parseSpringStates("#.#.?##")
+        Then("Checking for groups partially should return right groups") {
+            findDamagedGroupsPartially(springStates) shouldBe listOf(1, 1)
+        }
+    }
 
     Given("spring states with no unknown states") {
         val springStates = parseSpringStates("#.#.###")
@@ -125,6 +131,30 @@ fun findDamagedGroups(states: List<SpringState>) = buildList {
         add(currentGroupLength)
 }
 
+fun findDamagedGroupsPartially(states: List<SpringState>): List<Int> {
+    val result = mutableListOf<Int>()
+    var currentGroupLength = 0
+    for (state in states) {
+        if (state == SpringState.DAMAGED) {
+            currentGroupLength++
+        } else {
+            if (state == SpringState.UNKNOWN) return result // return only up to first unknown
+            if (currentGroupLength > 0) { // end of current group
+                result.add(currentGroupLength)
+                currentGroupLength = 0
+            }
+        }
+    }
+    if (currentGroupLength > 0) // handle last group
+        result.add(currentGroupLength)
+    return result
+}
+
+fun compareDamagedGroupsPartially(states: List<SpringState>, groups: List<Int>): Boolean {
+    val partialGroups = findDamagedGroupsPartially(states)
+    return groups.take(partialGroups.size) == partialGroups
+}
+
 fun searchPossibleStates(states: List<SpringState>, groups: List<Int>): List<List<SpringState>> {
     fun replaceFirstUnknown(states: List<SpringState>): List<List<SpringState>> {
         val firstUnknown = states.indexOfFirst { it == SpringState.UNKNOWN }
@@ -135,12 +165,13 @@ fun searchPossibleStates(states: List<SpringState>, groups: List<Int>): List<Lis
             listOf(v1, v2)
         }
     }
-    return if (states.none { it == SpringState.UNKNOWN})
-        if (findDamagedGroups(states) == groups) listOf(states)
+    val replacedUnknown = replaceFirstUnknown(states)
+    return if (replacedUnknown.size == 1) // Nothing unknown
+        if (findDamagedGroups(replacedUnknown[0]) == groups) listOf(replacedUnknown[0])
         else listOf()
     else {
-        val replacedUnknown = replaceFirstUnknown(states)
-        searchPossibleStates(replacedUnknown[0], groups) + searchPossibleStates(replacedUnknown[1], groups)
+        val filteredReplacedUnknown = replacedUnknown.filter { compareDamagedGroupsPartially(it, groups) } // Keep only groups with match
+        filteredReplacedUnknown.flatMap { searchPossibleStates(it, groups) }
     }
 }
 
