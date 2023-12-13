@@ -16,7 +16,7 @@ class Day12Part1: BehaviorSpec() { init {
 
     Given("example input") {
         When("parsing the input") {
-            val springStatesAndGroups = parseSpringStatesAndGroups(exampleInputDay12)
+            val springStatesAndGroups = parseSpringStatesAndGroupsLine(exampleInputDay12)
             Then("map should be parsed correctly") {
                 springStatesAndGroups.size shouldBe 6
                 springStatesAndGroups[0].first shouldBe listOf(SpringState.UNKNOWN, SpringState.UNKNOWN, SpringState.UNKNOWN, SpringState.OPERATIONAL, SpringState.DAMAGED, SpringState.DAMAGED, SpringState.DAMAGED)
@@ -88,7 +88,7 @@ class Day12Part1: BehaviorSpec() { init {
     }
 
     Given("exercise input") {
-        val springStatesAndGroups = parseSpringStatesAndGroups(readResource("inputDay12.txt")!!)
+        val springStatesAndGroups = parseSpringStatesAndGroupsLine(readResource("inputDay12.txt")!!)
         When("Searching possible states") {
             val counts = springStatesAndGroups.map { (states, groups) -> searchPossibleStates(states, groups).count() }
             Then("Summing counts should return right value") {
@@ -98,12 +98,29 @@ class Day12Part1: BehaviorSpec() { init {
     }
 } }
 
-fun parseSpringStatesAndGroups(input: String) = input.split("\n").map { line ->
+class Day12Part2: BehaviorSpec() { init {
+    xGiven("a row starting with an operational spring") {
+        val (states, groups) = parseSpringStatesAndGroups(".??..??...?##. 1,1,3")
+        Then("counting possible states for folded input should be right") {
+            countPossibleStatesFolded(states, groups) shouldBe 16384
+        }
+    }
+} }
+
+fun parseSpringStatesAndGroupsLine(input: String) = input.split("\n").map { line ->
     val parts = line.trim().split(" ")
     val states = parseSpringStates(parts[0])
 
     val groups = parts[1].split(",").map { it.toInt() }
     states to groups
+}
+
+fun parseSpringStatesAndGroups(line: String): Pair<List<SpringState>, List<Int>> {
+    val parts = line.trim().split(" ")
+    val states = parseSpringStates(parts[0])
+
+    val groups = parts[1].split(",").map { it.toInt() }
+    return states to groups
 }
 
 fun parseSpringStates(input: String) = input.toCharArray().map {
@@ -173,6 +190,15 @@ fun searchPossibleStates(states: List<SpringState>, groups: List<Int>): List<Lis
         val filteredReplacedUnknown = replacedUnknown.filter { compareDamagedGroupsPartially(it, groups) } // Keep only groups with match
         filteredReplacedUnknown.flatMap { searchPossibleStates(it, groups) }
     }
+}
+
+fun countPossibleStatesFolded(states: List<SpringState>, groups: List<Int>): Int {
+    val originalStateCount = searchPossibleStates(states, groups).count()
+    if (states[0] == SpringState.OPERATIONAL) { // clearly separated
+        val extendedStateCount =  searchPossibleStates(states + SpringState.UNKNOWN, groups).count()
+        return extendedStateCount * extendedStateCount * extendedStateCount * extendedStateCount * originalStateCount
+    }
+    return 0
 }
 
 
