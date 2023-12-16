@@ -14,12 +14,13 @@ val exampleInputDay15 = """
     .|....-|.\
     ..//.|....
 """.trimIndent()
+
 class Day16Part1: BehaviorSpec() { init {
 
     Given("mirror room input") {
-        When("parsing the mirror rooum") {
+        When("parsing the mirror room") {
             val mirrorRoom = parseMirrorRoom(exampleInputDay15)
-            Then("it should have been parsed correclty") {
+            Then("it should have been parsed correctly") {
                 mirrorRoom.size shouldBe 10
                 mirrorRoom[0].size shouldBe 10
                 mirrorRoom[0][1] shouldBe '|'
@@ -29,9 +30,9 @@ class Day16Part1: BehaviorSpec() { init {
                     MutableList(mirrorRoom[0].size) { '.'}
                 }
                 visited[0][0] = '#'
-                followBeams(listOf(Beam(Coord2(0, 0), Direction(1, 0))), mirrorRoom, visited)
+                followBeams(Beam(Coord2(0, 0), Direction(1, 0)), mirrorRoom, visited)
                 Then("it should have visited the right tiles") {
-                    println(visited.map { it.joinToString("")}.joinToString("\n"))
+                    println(visited.joinToString("\n") { it.joinToString("") })
                     visited shouldBe parseMirrorRoom("""
                         ######....
                         .#...#....
@@ -59,7 +60,7 @@ class Day16Part1: BehaviorSpec() { init {
                 MutableList(mirrorRoom[0].size) { '.'}
             }
             visited[0][0] = '#'
-            followBeams(listOf(Beam(Coord2(0, 0), Direction(1, 0))), mirrorRoom, visited)
+            followBeams(Beam(Coord2(0, 0), Direction(1, 0)), mirrorRoom, visited)
             Then("it should have the right sum of visited tiles") {
                 countVisited(visited) shouldBe 7046
             }
@@ -72,9 +73,9 @@ fun parseMirrorRoom(input: String) = input.split("\n").map {
     it.trim().toCharArray().toList()
 }
 
-fun followBeams(beams: List<Beam>, mirrorRoom: MirrorRoom, visited: MutableList<MutableList<Char>>) {
+fun followBeams(startBeam: Beam, mirrorRoom: MirrorRoom, visitedInRoom: MutableList<MutableList<Char>>) {
     fun insideRoom(pos: Coord2) =
-        pos.y in 0 ..< mirrorRoom.size &&
+        pos.y in mirrorRoom.indices &&
             pos.x in 0 ..< mirrorRoom[pos.y].size
 
     fun moveBeam(beam: Beam): List<Beam> {
@@ -104,16 +105,16 @@ fun followBeams(beams: List<Beam>, mirrorRoom: MirrorRoom, visited: MutableList<
         else listOf() // beam falls out of the room
     }
 
-    var currentBeams = beams
-    val visitedTiles = mutableSetOf<Pair<Coord2, Direction>>(Pair(Coord2(0,0), Direction(1, 0)))
-    while(currentBeams.size > 0) {
+    var currentBeams = listOf(startBeam)
+    val visitedTiles = mutableSetOf(startBeam)
+    while(currentBeams.isNotEmpty()) {
         val nextBeams = mutableListOf<Beam>()
         for(beam in currentBeams) {
             val movedBeams = moveBeam(beam)
             for(movedBeam in movedBeams)
-                    visited[movedBeam.pos.y][movedBeam.pos.x] = '#'
-            val filteredMovedBeams = movedBeams.filter { Pair(it.pos, it.direction) !in visitedTiles} // ignore tiles visited with the same direction
-            visitedTiles += filteredMovedBeams.map { Pair(it.pos, it.direction) }
+                    visitedInRoom[movedBeam.pos.y][movedBeam.pos.x] = '#'
+            val filteredMovedBeams = movedBeams.filter { it !in visitedTiles} // ignore tiles visited with the same direction
+            visitedTiles += filteredMovedBeams
             nextBeams += filteredMovedBeams
         }
         currentBeams = nextBeams
@@ -121,7 +122,7 @@ fun followBeams(beams: List<Beam>, mirrorRoom: MirrorRoom, visited: MutableList<
 }
 
 fun countVisited(mirrorRoom: MirrorRoom) =
-    mirrorRoom.sumOf { row -> row.filter { it == '#' }.count() }
+    mirrorRoom.sumOf { row -> row.count { it == '#' } }
 
 data class Beam(val pos: Coord2, val direction: Direction)
 data class Direction(val deltaX: Int, val deltaY: Int)
