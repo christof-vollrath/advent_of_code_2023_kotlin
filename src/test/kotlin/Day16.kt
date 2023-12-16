@@ -29,7 +29,6 @@ class Day16Part1: BehaviorSpec() { init {
                 val visited = MutableList(mirrorRoom.size) {
                     MutableList(mirrorRoom[0].size) { '.'}
                 }
-                visited[0][0] = '#'
                 followBeams(Beam(Coord2(0, 0), Direction(1, 0)), mirrorRoom, visited)
                 Then("it should have visited the right tiles") {
                     println(visited.joinToString("\n") { it.joinToString("") })
@@ -59,10 +58,42 @@ class Day16Part1: BehaviorSpec() { init {
             val visited = MutableList(mirrorRoom.size) {
                 MutableList(mirrorRoom[0].size) { '.'}
             }
-            visited[0][0] = '#'
             followBeams(Beam(Coord2(0, 0), Direction(1, 0)), mirrorRoom, visited)
             Then("it should have the right sum of visited tiles") {
                 countVisited(visited) shouldBe 7046
+            }
+        }
+    }
+} }
+
+class Day16Part2: BehaviorSpec() { init {
+
+    Given("mirror room input") {
+        val mirrorRoom = parseMirrorRoom(exampleInputDay15)
+        When("following beams from edge 3, 0") {
+            val count = followBeamsAndCount(Beam(Coord2(3, 0), Direction(0, 1)), mirrorRoom)
+            Then("count should be right") {
+                count shouldBe 51
+            }
+        }
+        When("following beams from all edge tiles") {
+            val counts = followBeamsAndCountFromAllEdes(mirrorRoom)
+            Then("it should have followed 40 beams") {
+                counts.size shouldBe 40
+            }
+            Then("counts should have the best") {
+                counts.max() shouldBe 51
+            }
+        }
+
+    }
+    Given("exercise input") {
+        val exerciseInput = readResource("inputDay16.txt")!!
+        val mirrorRoom = parseMirrorRoom(exerciseInput)
+        When("following beams from all edge tiles") {
+            val counts = followBeamsAndCountFromAllEdes(mirrorRoom)
+            Then("counts should have the best") {
+                counts.max() shouldBe 7313
             }
         }
     }
@@ -105,6 +136,7 @@ fun followBeams(startBeam: Beam, mirrorRoom: MirrorRoom, visitedInRoom: MutableL
         else listOf() // beam falls out of the room
     }
 
+    visitedInRoom[startBeam.pos.y][startBeam.pos.x] = '#'
     var currentBeams = listOf(startBeam)
     val visitedTiles = mutableSetOf(startBeam)
     while(currentBeams.isNotEmpty()) {
@@ -119,6 +151,30 @@ fun followBeams(startBeam: Beam, mirrorRoom: MirrorRoom, visitedInRoom: MutableL
         }
         currentBeams = nextBeams
     }
+}
+
+fun followBeamsAndCount(beam: Beam, mirrorRoom: MirrorRoom): Int {
+    val visited = MutableList(mirrorRoom.size) {
+        MutableList(mirrorRoom[0].size) { '.'}
+    }
+    followBeams(beam, mirrorRoom, visited)
+    //println(visited.joinToString("\n") { it.joinToString("") })
+    return countVisited(visited)
+}
+
+fun followBeamsAndCountFromAllEdes(mirrorRoom: MirrorRoom) = buildList {
+    // upper edges
+    for (x in mirrorRoom[0].indices)
+        add(followBeamsAndCount(Beam(Coord2(x, 0), Direction(0, 1)), mirrorRoom))
+    // lower edges
+    for (x in mirrorRoom[mirrorRoom.size-1].indices)
+        add(followBeamsAndCount(Beam(Coord2(x, mirrorRoom.size-1), Direction(0, -1)), mirrorRoom))
+    // left edges
+    for (y in mirrorRoom.indices)
+        add(followBeamsAndCount(Beam(Coord2(0, y), Direction(1, 0)), mirrorRoom))
+    // right edges
+    for (y in mirrorRoom.indices)
+        add(followBeamsAndCount(Beam(Coord2(mirrorRoom[y].size - 1, y), Direction(-1, 0)), mirrorRoom))
 }
 
 fun countVisited(mirrorRoom: MirrorRoom) =
