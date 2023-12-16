@@ -61,7 +61,7 @@ class Day16Part1: BehaviorSpec() { init {
             visited[0][0] = '#'
             followBeams(listOf(Beam(Coord2(0, 0), Direction(1, 0))), mirrorRoom, visited)
             Then("it should have the right sum of visited tiles") {
-                countVisited(visited) shouldBe 46
+                countVisited(visited) shouldBe 7046
             }
         }
     }
@@ -79,41 +79,42 @@ fun followBeams(beams: List<Beam>, mirrorRoom: MirrorRoom, visited: MutableList<
 
     fun moveBeam(beam: Beam): List<Beam> {
         val nextCoord2 = Coord2(beam.pos.x + beam.direction.deltaX, beam.pos.y + beam.direction.deltaY)
-        val visited = beam.visited
-        val result = if (insideRoom(nextCoord2)) {
+        return if (insideRoom(nextCoord2)) {
             val tile = mirrorRoom[nextCoord2.y][nextCoord2.x]
             when {
                 tile == '|' && beam.direction.deltaY == 0 -> listOf(
-                    Beam(nextCoord2, Direction(0, -1), beam.visited.toMutableSet()),
-                    Beam(nextCoord2, Direction(0, 1), beam.visited.toMutableSet())
+                    Beam(nextCoord2, Direction(0, -1)),
+                    Beam(nextCoord2, Direction(0, 1))
 
                 )
                 tile == '-' && beam.direction.deltaX == 0 -> listOf(
-                    Beam(nextCoord2, Direction(-1, 0), beam.visited.toMutableSet()),
-                    Beam(nextCoord2, Direction(1, 0), beam.visited.toMutableSet())
+                    Beam(nextCoord2, Direction(-1, 0)),
+                    Beam(nextCoord2, Direction(1, 0))
 
                 )
                 tile == '/' -> listOf(
-                    Beam(nextCoord2, Direction(-beam.direction.deltaY, -beam.direction.deltaX), beam.visited.toMutableSet())
+                    Beam(nextCoord2, Direction(-beam.direction.deltaY, -beam.direction.deltaX))
                 )
                 tile == '\\' -> listOf(
-                    Beam(nextCoord2, Direction(beam.direction.deltaY, beam.direction.deltaX), beam.visited.toMutableSet())
+                    Beam(nextCoord2, Direction(beam.direction.deltaY, beam.direction.deltaX))
                 )
-                else -> listOf(Beam(nextCoord2, beam.direction, beam.visited))
+                else -> listOf(Beam(nextCoord2, beam.direction))
             }
         }
         else listOf() // beam falls out of the room
-        return result.filter { Pair(it.pos, it.direction) !in visited } // if visited the same tile with the same direction loop!
-            .map { it.visited += Pair(it.pos, it.direction); it } // and add visited
     }
+
     var currentBeams = beams
+    val visitedTiles = mutableSetOf<Pair<Coord2, Direction>>(Pair(Coord2(0,0), Direction(1, 0)))
     while(currentBeams.size > 0) {
         val nextBeams = mutableListOf<Beam>()
         for(beam in currentBeams) {
             val movedBeams = moveBeam(beam)
             for(movedBeam in movedBeams)
                     visited[movedBeam.pos.y][movedBeam.pos.x] = '#'
-            nextBeams += movedBeams
+            val filteredMovedBeams = movedBeams.filter { Pair(it.pos, it.direction) !in visitedTiles} // ignore tiles visited with the same direction
+            visitedTiles += filteredMovedBeams.map { Pair(it.pos, it.direction) }
+            nextBeams += filteredMovedBeams
         }
         currentBeams = nextBeams
     }
@@ -122,5 +123,5 @@ fun followBeams(beams: List<Beam>, mirrorRoom: MirrorRoom, visited: MutableList<
 fun countVisited(mirrorRoom: MirrorRoom) =
     mirrorRoom.sumOf { row -> row.filter { it == '#' }.count() }
 
-data class Beam(val pos: Coord2, val direction: Direction, val visited: MutableSet<Pair<Coord2, Direction>> = mutableSetOf())
+data class Beam(val pos: Coord2, val direction: Direction)
 data class Direction(val deltaX: Int, val deltaY: Int)
