@@ -2,7 +2,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
 
-val exampleInputDay15 = """
+val exampleInputDay16 = """
     .|...\....
     |.-.\.....
     .....|-...
@@ -19,7 +19,7 @@ class Day16Part1: BehaviorSpec() { init {
 
     Given("mirror room input") {
         When("parsing the mirror room") {
-            val mirrorRoom = parseMirrorRoom(exampleInputDay15)
+            val mirrorRoom = parseMirrorRoom(exampleInputDay16)
             Then("it should have been parsed correctly") {
                 mirrorRoom.size shouldBe 10
                 mirrorRoom[0].size shouldBe 10
@@ -69,7 +69,7 @@ class Day16Part1: BehaviorSpec() { init {
 class Day16Part2: BehaviorSpec() { init {
 
     Given("mirror room input") {
-        val mirrorRoom = parseMirrorRoom(exampleInputDay15)
+        val mirrorRoom = parseMirrorRoom(exampleInputDay16)
         When("following beams from edge 3, 0") {
             val count = followBeamsAndCount(Beam(Coord2(3, 0), Direction(0, 1)), mirrorRoom)
             Then("count should be right") {
