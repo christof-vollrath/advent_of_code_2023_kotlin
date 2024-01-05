@@ -1,10 +1,6 @@
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.core.spec.style.FunSpec
-import io.kotest.datatest.withData
 import io.kotest.matchers.shouldBe
 import kotlin.math.abs
-import kotlin.math.sign
-
 
 val exampleInputDay18 = """
     R 6 (#70c710)
@@ -98,12 +94,6 @@ class Day18Part2: BehaviorSpec() { init {
 
     Given("dig plan 1") {
         val digPlan = parseDigPlan(exampleInputDay18)
-        When("finding highest and lowest values") {
-            val minMax = findMinMax(digPlan)
-            Then("it should have found the max y value"){
-                minMax shouldBe Pair(LongCoord2(0, 0), LongCoord2(6L, 9L))
-            }
-        }
          When("finding corners") {
              val corners = findCorners(digPlan)
              corners shouldBe listOf(
@@ -213,386 +203,14 @@ class Day18Part2: BehaviorSpec() { init {
 
 }}
 
-fun findMinMax(digPlan: List<DigStep>): Pair<LongCoord2, LongCoord2> {
-    var maxY = Long.MIN_VALUE
-    var minY = Long.MAX_VALUE
-    var posY = 0L
-    var maxX = Long.MIN_VALUE
-    var minX = Long.MAX_VALUE
-    var posX = 0L
-    for(step in digPlan) {
-        when(step.dir) {
-            DigDirection.UP -> posY -= step.nr
-            DigDirection.DOWN ->  posY += step.nr
-            DigDirection.RIGHT -> posX += step.nr
-            DigDirection.LEFT -> posX -= step.nr
-        }
-        if (posY < minY) minY = posY
-        if (posY > maxY) maxY = posY
-        if (posX < minX) minX = posX
-        if (posX > maxX) maxX = posX
-    }
-    return Pair(LongCoord2(minX, minY), LongCoord2(maxX, maxY))
-}
-
 fun findMinMaxFromCorners(corners: List<LongCoord2>): Pair<LongCoord2, LongCoord2> {
-    var maxY = corners.maxBy { it.y }.y
-    var minY = corners.minBy { it.y }.y
-    var maxX = corners.maxBy { it.x }.x
-    var minX = corners.minBy { it.x }.x
+    val maxY = corners.maxBy { it.y }.y
+    val minY = corners.minBy { it.y }.y
+    val maxX = corners.maxBy { it.x }.x
+    val minX = corners.minBy { it.x }.x
     return Pair(LongCoord2(minX, minY), LongCoord2(maxX, maxY))
 }
-/*
-class Day18Part2: BehaviorSpec() { init {
 
-    Given("dig plan 1") {
-        val digPlan = parseDigPlan(exampleInputDay18)
-        When("finding corners") {
-            val corners = findCorners(digPlan)
-            corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=6, y=0), LongCoord2(x=6, y=5),
-                LongCoord2(x=4, y=5), LongCoord2(x=4, y=7), LongCoord2(x=6, y=7), LongCoord2(x=6, y=9),
-                LongCoord2(x=1, y=9), LongCoord2(x=1, y=7), LongCoord2(x=0, y=7), LongCoord2(x=0, y=5),
-                LongCoord2(x=2, y=5), LongCoord2(x=2, y=2), LongCoord2(x=0, y=2))
-            println(corners)
-        }
-        When("finding rectangles") {
-            val rectangles = findRectangles(findCorners(digPlan))
-            Then("rectangles should be right") {
-                rectangles shouldBe listOf(LongRectangle(c1=LongCoord2(x=2, y=4), c2=LongCoord2(x=5, y=0)),
-                    LongRectangle(c1=LongCoord2(x=0, y=2), c2=LongCoord2(x=2, y=0)))
-            }
-        }
-    }
-
-    Given("dig plan 2") {
-        When("parsing input") {
-            val digPlan = parseDigPlan2(exampleInputDay18)
-            Then("it should have been parsed correctly") {
-                digPlan.size shouldBe 14
-                digPlan[0] shouldBe DigStep(DigDirection.RIGHT, 461937)
-                digPlan[2] shouldBe DigStep(DigDirection.RIGHT, 356671)
-            }
-            When("filling the interior") {
-                val nr = calculatedFilledAfterPlan(digPlan)
-                Then("it should have filled all interior cubic meters") {
-                    nr shouldBe 952408144115L
-                }
-            }
-        }
-    }
-    Given("a real simple dig plan") {
-        val digPlan = parseDigPlan("""
-            R 3 (#70c710)
-            D 2 (#0dc571)
-            L 3 (#8ceee2)
-            U 2 (#caa173)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ####
-                    #..#
-                    ####""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=3, y=0), LongCoord2(x=3, y=2), LongCoord2(x=0, y=2))
-                println(corners)
-            }
-            When("finding rectangles") {
-                val rectangles = findRectangles(findCorners(digPlan))
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(LongRectangle(LongCoord2(0, 2), LongCoord2(3, 0)))
-                }
-            }
-        }
-    }
-
-    Given("a simple dig plan with two rectangles") {
-        val digPlan = parseDigPlan("""
-            R 5 (#70c710)
-            D 4 (#0dc571)
-            L 3 (#8ceee2)
-            U 2 (#caa173)
-            L 2 (#8ceee2)
-            U 2 (#caa173)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ######
-                    #....#
-                    ###..#
-                    ..#..#
-                    ..####""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=5, y=0),
-                    LongCoord2(x=5, y=4), LongCoord2(x=2, y=4), LongCoord2(x=2, y=2), LongCoord2(x=0, y=2))
-                println(corners)
-            }
-            When("finding rectangles") {
-                val rectangles = findRectangles(findCorners(digPlan))
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(LongRectangle(c1=LongCoord2(x=2, y=4), c2=LongCoord2(x=5, y=0)),
-                        LongRectangle(c1=LongCoord2(x=0, y=2), c2=LongCoord2(x=2, y=0)))
-                }
-            }
-        }
-    }
-
-    Given("a simple dig plan with two rectangles in other variant") {
-        val digPlan = parseDigPlan("""
-            R 5 (#70c710)
-            D 2 (#0dc571)
-            L 3 (#8ceee2)
-            D 2 (#caa173)
-            L 2 (#8ceee2)
-            U 4 (#caa173)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ######
-                    #....#
-                    #.####
-                    #.#...
-                    ###...""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=5, y=0),
-                    LongCoord2(x=5, y=2), LongCoord2(x=2, y=2), LongCoord2(x=2, y=4), LongCoord2(x=0, y=4))
-                println(corners)
-            }
-            When("finding rectangles") {
-                val rectangles = findRectangles(findCorners(digPlan))
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(LongRectangle(c1=LongCoord2(x=2, y=2), c2=LongCoord2(x=5, y=0)),
-                        LongRectangle(c1=LongCoord2(x=0, y=4), c2=LongCoord2(x=2, y=0)))
-                }
-            }
-        }
-    }
-
-    Given("a simple dig plan with two rectangles in yet other variant") {
-        val digPlan = parseDigPlan("""
-            R 3 (#70c710)
-            D 2 (#0dc571)
-            R 2 (#8ceee2)
-            D 2 (#caa173)
-            L 5 (#8ceee2)
-            U 4 (#caa173)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ####..
-                    #..#..
-                    #..###
-                    #....#
-                    ######""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=3, y=0), LongCoord2(x=3, y=2),
-                    LongCoord2(x=5, y=2), LongCoord2(x=5, y=4), LongCoord2(x=0, y=4))
-                println(corners)
-            }
-            When("finding rectangles") {
-                val rectangles = findRectangles(findCorners(digPlan))
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(LongRectangle(c1=LongCoord2(x=0, y=4), c2=LongCoord2(x=5, y=2)),
-                        LongRectangle(c1=LongCoord2(x=0, y=2), c2=LongCoord2(x=3, y=0)))
-                }
-            }
-        }
-    }
-
-    Given("another variant of a dig plan another variant") {
-        val digPlan = parseDigPlan("""
-            R 5 (#70c710)
-            D 2 (#0dc571)
-            L 7 (#8ceee2)
-            U 2 (#caa173)
-            R 2 (#caa173)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ########
-                    #......#
-                    ########""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                corners shouldBe listOf(LongCoord2(x=0, y=0), LongCoord2(x=5, y=0),
-                    LongCoord2(x=5, y=2), LongCoord2(x=-2, y=2), LongCoord2(x=-2, y=0))
-                println(corners)
-            }
-            When("finding rectangles") {
-                val rectangles = findRectangles(findCorners(digPlan))
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(LongRectangle(c1=LongCoord2(x=2, y=2), c2=LongCoord2(x=5, y=0)),
-                        LongRectangle(c1=LongCoord2(x=0, y=4), c2=LongCoord2(x=2, y=0)))
-                }
-            }
-        }
-    }
-
-    /* TODO
-    Given("another dig plan") {
-        val digPlan = parseDigPlan("""
-            R 3 (#70c710)
-            D 2 (#0dc571)
-            R 2 (#5713f0)
-            D 3 (#d2c081)
-            R 1 (#59c680)
-            D 2 (#411b91)
-            L 3 (#8ceee2)
-            U 3 (#caa173)
-            L 2 (#1b58a2)
-            U 1 (#caa171)
-            L 1 (#7807d2)
-            U 3 (#a77fa3)
-        """.trimIndent()) // Using parser of part 1 for better readability
-        When("executing simple plan and drawing map") {
-            val map = executePlan(digPlan)
-            val mapStr = drawDigMap(map)
-            println(drawDigMap(map)); repeat(2) { println() }
-            Then("map should be right") {
-                mapStr shouldBe """
-                    ####...
-                    #..#...
-                    #..###.
-                    ##...#.
-                    .###.#.
-                    ...#.##
-                    ...#..#
-                    ...####""".trimIndent()
-            }
-            When("finding corners") {
-                val corners = findCorners(digPlan)
-                println(corners)
-            }
-            When("finding regtancles") {
-                val rectangles = findRectangles(digPlan)
-                Then("rectangles should be right") {
-                    rectangles shouldBe listOf(
-                        LongRectangle(LongCoord2(0, 0), LongCoord2(0, 3)),
-                        LongRectangle(LongCoord2(1, 0), LongCoord2(2, 4)),
-                        LongRectangle(LongCoord2(3, 0), LongCoord2(3, 7)),
-                        LongRectangle(LongCoord2(4, 2), LongCoord2(5, 7)),
-                        LongRectangle(LongCoord2(6, 5), LongCoord2(6, 7)),
-                    )
-                }
-            }
-        }
-    }
-
-     */
-    Given("exercise input") {
-        val exerciseInput = readResource("inputDay18.txt")!!
-        val digPlan = parseDigPlan2(exerciseInput)
-        When("finding corners") {
-            val corners = findCorners(digPlan)
-            println(corners)
-        }
-        When("executing example input and drawing map") {
-            val nr = calculatedFilledAfterPlan(digPlan)
-            Then("it should have filled all interior cubic meters") {
-                nr shouldBe 952408144115L
-            }
-        }
-    }
-} }
-
-
- */
-class FindRectanglesTests : FunSpec({
-    context("calculate size") {
-        withData(
-            // only one rectangle
-            """
-                R 3 (#70c710)
-                D 2 (#0dc571)
-                L 3 (#8ceee2)
-                U 2 (#caa173)
-            """.trimIndent() to 12,
-            """
-                L 4 (#70c710)
-                D 2 (#0dc571)
-                R 4 (#8ceee2)
-                U 2 (#caa173)
-            """.trimIndent() to 15,
-            """
-                R 3 (#70c710)
-                U 2 (#0dc571)
-                L 3 (#8ceee2)
-                D 2 (#caa173)
-            """.trimIndent() to 12,
-            """
-                L 3 (#70c710)
-                U 2 (#0dc571)
-                R 3 (#8ceee2)
-                D 2 (#caa173)
-            """.trimIndent() to 12,
-            // Two rectangles
-            """
-                R 5 (#70c710)
-                D 4 (#0dc571)
-                L 3 (#8ceee2)
-                U 2 (#caa173)
-                L 2 (#8ceee2)
-                U 2 (#caa173)
-            """.trimIndent() to 26,
-            """
-                L 5 (#70c710)
-                D 4 (#0dc571)
-                R 3 (#8ceee2)
-                U 2 (#caa173)
-                R 2 (#8ceee2)
-                U 2 (#caa173)
-            """.trimIndent() to 26,
-            """
-                R 5 (#70c710)
-                U 4 (#0dc571)
-                L 3 (#8ceee2)
-                D 2 (#caa173)
-                L 2 (#8ceee2)
-                D 2 (#caa173)
-            """.trimIndent() to 26,
-            """
-                L 5 (#70c710)
-                U 4 (#0dc571)
-                R 3 (#8ceee2)
-                D 2 (#caa173)
-                R 2 (#8ceee2)
-                D 2 (#caa173)
-            """.trimIndent() to 26,
-        ) { (plan, expected) ->
-            // Using algorithm from part 1
-            val digPlan = parseDigPlan(plan)
-            val map = executePlan(digPlan)
-            val filledMap = fillInterior(map)
-            filledMap.size shouldBe expected
-            // Optimized algorithm for part 2
-            val size = calculateSize(digPlan)
-            size shouldBe expected
-        }
-    }
-})
 fun parseDigPlan(input: String) = input.split("\n").map {
     parseDigStep(it.trim())
 }
@@ -759,83 +377,6 @@ fun findCorners(digPlan: List<DigStep>): List<LongCoord2> = buildList {
     }
 }
 
-fun findRectangles(corners: List<LongCoord2>) = buildList {
-    val cornerStack = ArrayDeque<LongCoord2>()
-    for (corner in corners) cornerStack.addFirst(corner)
-    while(cornerStack.size >= 4) {
-        for (i in cornerStack.indices) { // Try to find one rectancle
-            var rectangle: LongRectangle? = null
-            val corner = cornerStack.get(cornerStack.size - 1 - i) // corners counted backward
-            val corner_1 = cornerStack.get(cornerStack.size - 2 - i)
-            val corner_2 = cornerStack.get(cornerStack.size - 3 - i)
-            val corner_3 = cornerStack.get(cornerStack.size - 4 - i)
-            val oppositeSide = corner_2 - corner_3
-            if (oppositeSide.sign().x == 0) { // parallel to y axis
-                val side = corner_1 - corner
-                if (side.x != 0L) throw IllegalArgumentException("no opposite sides")
-                if (oppositeSide.sign().y == side.sign().y)
-                    rectangle = LongRectangle(corner, corner_2)
-            } else if (oppositeSide.sign().y == 0) { // parallel to x axis
-                val side = corner_1 - corner
-                if (side.y != 0L) throw IllegalArgumentException("no opposite sides")
-                if (oppositeSide.sign().x == side.sign().x)
-                    rectangle = LongRectangle(corner, corner_2)
-            } else throw IllegalArgumentException("sides should be parallel to x or y axis")
-            if (rectangle != null) {
-                add(rectangle)
-                repeat(3) { cornerStack.removeLast() }
-                cornerStack.add(LongCoord2(rectangle.c1.x, rectangle.c2.y))
-                break // One found
-            }
-        }
-        throw IllegalArgumentException("No rectangle found")
-    }
-}
-/*
-fun findRectangles(digPlan: List<DigStep>) = buildList {
-    var pos = LongCoord2(0, 0)
-    val movingRight = mutableListOf<LongCoord2>()
-    var movingLeft = mutableListOf<LongCoord2>()
-    for(step in digPlan) {
-        when(step.dir) {
-            DigDirection.RIGHT -> {
-                pos = LongCoord2(pos.x + step.nr, pos.y)
-                movingRight += pos
-            }
-            DigDirection.LEFT -> {
-                pos = LongCoord2(pos.x - step.nr, pos.y)
-                movingLeft += pos
-            }
-            DigDirection.UP -> {
-                pos = LongCoord2(pos.x, pos.y - step.nr)
-            }
-            DigDirection.DOWN -> {
-                pos = LongCoord2(pos.x, pos.y + step.nr)
-            }
-        }
-    }
-    movingLeft.reverse()
-    var rightI = 0; var leftI = 0; var currPos = LongCoord2(0, 0)
-    while(rightI < movingRight.size && leftI < movingLeft.size) {
-        val rightX = movingRight[rightI].x
-        val leftX = movingLeft[leftI].x
-        if (rightX < leftX) {
-            add(LongRectangle(currPos, LongCoord2(rightX, movingLeft[leftI].y)))
-            rightI++
-        }
-        else {
-            add(LongRectangle(currPos, LongCoord2(leftX, movingLeft[leftI].y)))
-            leftI++
-        }
-    }
-}
-
- */
-
-fun calculatedFilledAfterPlan(digPlan: List<DigStep>): Long {
-    return 0
-}
-
 fun findUpperLeftCorner(corners: List<LongCoord2>, minCoord: LongCoord2) =
     corners.filter { it.x == minCoord.x }.minBy { it.y }
 
@@ -848,7 +389,6 @@ fun resortCorners(corners: List<LongCoord2>, min: LongCoord2): List<LongCoord2> 
     return result
 
 }
-
 
 fun calculateSize(digPlan: List<DigStep>): Long {
     val corners = findCorners(digPlan)
@@ -889,16 +429,11 @@ fun calculateSize(digPlan: List<DigStep>): Long {
     return size
 }
 
-
 enum class DigDirection { RIGHT, LEFT, UP, DOWN }
 
 data class DigStep(val dir: DigDirection, val nr: Long)
 
 data class LongCoord2(val x: Long, val y: Long) {
     operator fun minus(direction: LongCoord2) = LongCoord2(x - direction.x, y - direction.y)
-
-    fun sign() = Coord2(x.sign, y.sign)
-
 }
-data class LongRectangle(val c1: LongCoord2, val c2: LongCoord2)
 
