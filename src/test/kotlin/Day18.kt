@@ -103,7 +103,7 @@ class Day18Part2: BehaviorSpec() { init {
                  LongCoord2(x = 2, y = 5), LongCoord2(x = 2, y = 2), LongCoord2(x = 0, y = 2)
              )
              When("finding highest and lowest values based on corners") {
-                 val minMax = findMinMaxFromCorners(corners)
+                 val minMax = findMinMax(corners)
                  Then("it should have found the max y value"){
                      minMax shouldBe Pair(LongCoord2(0, 0), LongCoord2(6L, 9L))
                  }
@@ -143,7 +143,7 @@ class Day18Part2: BehaviorSpec() { init {
         val digPlan = parseDigPlan2(exampleInputDay18)
         When("finding highest and lowest values") {
             val corners = findCorners(digPlan)
-            val minMax = findMinMaxFromCorners(corners)
+            val minMax = findMinMax(corners)
             Then("it should have found the max y value") {
                 minMax shouldBe Pair(LongCoord2(0, 0), LongCoord2(1186328L, 1186328L))
             }
@@ -175,7 +175,7 @@ class Day18Part2: BehaviorSpec() { init {
         val digPlan = parseDigPlan2(exerciseInput)
         When("executing example input and drawing map") {
             val corners = findCorners(digPlan)
-            val minMax = findMinMaxFromCorners(corners)
+            val minMax = findMinMax(corners)
             Then("it should have found the min, max values") {
                 minMax shouldBe Pair(LongCoord2(x=-3778733, y=-8868695), LongCoord2(x=9490626, y=2039161))
             }
@@ -203,7 +203,7 @@ class Day18Part2: BehaviorSpec() { init {
 
 }}
 
-fun findMinMaxFromCorners(corners: List<LongCoord2>): Pair<LongCoord2, LongCoord2> {
+fun findMinMax(corners: Collection<LongCoord2>): Pair<LongCoord2, LongCoord2> {
     val maxY = corners.maxBy { it.y }.y
     val minY = corners.minBy { it.y }.y
     val maxX = corners.maxBy { it.x }.x
@@ -234,41 +234,40 @@ fun parseDigStep(line: String): DigStep {
 }
 
 fun executePlan(digPlan: List<DigStep>) = buildSet {
-    var pos = Coord2(0, 0)
+    var pos = LongCoord2(0, 0)
     for (digStep in digPlan) {
         when(digStep.dir) {
             DigDirection.UP ->
                 for (i in 1..digStep.nr) {
                     add(pos)
-                    pos = Coord2(pos.x - 1, pos.y)
+                    pos = LongCoord2(pos.x - 1, pos.y)
                 }
             DigDirection.DOWN ->
                 for (i in 1..digStep.nr) {
                     add(pos)
-                    pos = Coord2(pos.x + 1, pos.y)
+                    pos = LongCoord2(pos.x + 1, pos.y)
                 }
             DigDirection.RIGHT ->
                 for (i in 1..digStep.nr) {
                     add(pos)
-                    pos = Coord2(pos.x, pos.y + 1)
+                    pos = LongCoord2(pos.x, pos.y + 1)
                 }
             DigDirection.LEFT ->
                 for (i in 1..digStep.nr) {
                     add(pos)
-                    pos = Coord2(pos.x, pos.y - 1)
+                    pos = LongCoord2(pos.x, pos.y - 1)
                 }
         }
     }
 }
 
-fun drawDigMap(set: Set<Coord2>): String {
-    val (minX, maxX) = minMaxX(set)
-    val (minY, maxY) = minMaxY(set)
+fun drawDigMap(set: Set<LongCoord2>): String {
+    val (min, max) = findMinMax(set)
     val mapList = buildList {
-        for (x in minX .. maxX)
+        for (x in min.x .. max.x)
             add(buildList {
-                for (y in minY..maxY) {
-                    val c = if (Coord2(x, y) in set) '#'
+                for (y in min.y..max.y) {
+                    val c = if (LongCoord2(x, y) in set) '#'
                     else '.'
                     add(c)
                 }
@@ -277,25 +276,14 @@ fun drawDigMap(set: Set<Coord2>): String {
     return mapList.joinToString("\n") { it.joinToString("")}
 }
 
-fun minMaxX(set: Set<Coord2>) = Pair(
-    set.map { it.x }.minBy { it },
-    set.map { it.x }.maxBy { it }
-    )
-
-fun minMaxY(set: Set<Coord2>) = Pair(
-    set.map { it.y }.minBy { it },
-    set.map { it.y }.maxBy { it }
-)
-
-fun findInterior(set: Set<Coord2>): Coord2? {
-    val (minX, maxX) = minMaxX(set)
-    val (minY, maxY) = minMaxY(set)
-    for (y in minY..maxY) {
+fun findInterior(set: Set<LongCoord2>): LongCoord2? {
+    val (min, max) = findMinMax(set)
+    for (y in min.y..max.y) {
         var singleTrenchFound = false
         var consecutiveTrenchesFound = false
-        for (x in minX .. maxX)
-            if (Coord2(x, y) !in set) {
-                if (singleTrenchFound && !consecutiveTrenchesFound)  return Coord2(x, y)
+        for (x in min.x .. max.x)
+            if (LongCoord2(x, y) !in set) {
+                if (singleTrenchFound && !consecutiveTrenchesFound)  return LongCoord2(x, y)
                 singleTrenchFound = false
                 consecutiveTrenchesFound = false
             } else {
@@ -306,13 +294,13 @@ fun findInterior(set: Set<Coord2>): Coord2? {
     return null
 }
 
-fun fillInterior(set: Set<Coord2>): MutableSet<Coord2> {
+fun fillInterior(set: Set<LongCoord2>): MutableSet<LongCoord2> {
     val filledSet = set.toMutableSet()
     val interior = findInterior(set)!!
     var currentSet = setOf(interior)
     filledSet.add(interior)
     while (currentSet.isNotEmpty()) {
-        val nextSet = mutableSetOf<Coord2>()
+        val nextSet = mutableSetOf<LongCoord2>()
         for (current in currentSet) {
             val neighborsToDig = current.neighbors().filter { it !in filledSet }
             nextSet.addAll(neighborsToDig)
@@ -355,11 +343,11 @@ fun findCorners(digPlan: List<DigStep>): List<LongCoord2> = buildList {
         if (startReached) throw IllegalArgumentException("Plan continues after reaching start")
         when(step.dir) {
             DigDirection.RIGHT -> {
-                if (recentDirection == DigDirection.RIGHT || recentDirection == DigDirection.LEFT) throw IllegalArgumentException("Right after horicontal movement is illegal")
+                if (recentDirection == DigDirection.RIGHT || recentDirection == DigDirection.LEFT) throw IllegalArgumentException("Right after horizontal movement is illegal")
                 pos = LongCoord2(pos.x + step.nr, pos.y)
             }
             DigDirection.LEFT -> {
-                if (recentDirection == DigDirection.RIGHT || recentDirection == DigDirection.LEFT) throw IllegalArgumentException("Left after horicontal movement is illegal")
+                if (recentDirection == DigDirection.RIGHT || recentDirection == DigDirection.LEFT) throw IllegalArgumentException("Left after horizontal movement is illegal")
                 pos = LongCoord2(pos.x - step.nr, pos.y)
             }
             DigDirection.UP -> {
@@ -392,7 +380,7 @@ fun resortCorners(corners: List<LongCoord2>, min: LongCoord2): List<LongCoord2> 
 
 fun calculateSize(digPlan: List<DigStep>): Long {
     val corners = findCorners(digPlan)
-    val (min, max) = findMinMaxFromCorners(corners)
+    val (min, max) = findMinMax(corners)
     val resorted = resortCorners(corners, min)
     var recentCorner = resorted.first()
     var size = 0L
@@ -435,5 +423,12 @@ data class DigStep(val dir: DigDirection, val nr: Long)
 
 data class LongCoord2(val x: Long, val y: Long) {
     operator fun minus(direction: LongCoord2) = LongCoord2(x - direction.x, y - direction.y)
+    operator fun plus(direction: LongCoord2) = LongCoord2(x + direction.x, y + direction.y)
+    fun neighbors() = neighborOffsets.map { neighborOffset ->
+        this + neighborOffset
+    }
+    companion object {
+        val neighborOffsets = listOf(LongCoord2(-1, 0), LongCoord2(1, 0), LongCoord2(0, -1), LongCoord2(0, 1))
+    }
 }
 
