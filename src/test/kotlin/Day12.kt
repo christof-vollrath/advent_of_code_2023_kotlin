@@ -1,6 +1,8 @@
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.longs.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import kotlin.math.max
 
 
 val exampleInputDay12 = """
@@ -99,12 +101,83 @@ class Day12Part1: BehaviorSpec() { init {
 } }
 
 class Day12Part2: BehaviorSpec() { init {
-    xGiven("a row starting with an operational spring") {
+
+    Given("an example") {
         val (states, groups) = parseSpringStatesAndGroups(".??..??...?##. 1,1,3")
         Then("counting possible states for folded input should be right") {
-            countPossibleStatesFolded(states, groups) shouldBe 16384
+            countPossibleStatesFoldedM1(states, groups, 4) shouldBe 16384L
         }
     }
+
+    Given("another example") {
+        val (states, groups) = parseSpringStatesAndGroups("???.### 1,1,3")
+        Then("counting possible states for folded input should be right") {
+            countPossibleStatesFoldedM2(states, groups, 2) shouldBe 1
+        }
+    }
+
+    Given("example input") {
+        val springStatesAndGroups = parseSpringStatesAndGroupsLine(exampleInputDay12)
+        When("Searching possible states without folding") {
+            val counts = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 0) }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1L, 4L, 1L, 1L, 4L, 10L)
+            }
+        }
+        When("Searching possible states with folding 2") {
+            val counts = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 1) }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1L, 32L, 1L, 2L, 20L, 150L)
+            }
+        }
+        When("Searching possible states with folding 3") {
+            val counts = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 2) }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1L, 256L, 1L, 4L, 100L, 2250L)
+            }
+        }
+        When("Searching possible states with folding 5") {
+            val counts = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM1(states, groups, 4) }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1L, 16384L, 1L, 16L, 2500L, 506250L)
+            }
+            Then("Summing counts should return right value") {
+                counts.sum() shouldBe 525152L
+            }
+        }
+        When("Searching possible states with folding 5, alternative implementation") {
+            val counts = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 4) }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1L, 16384L, 1L, 16L, 2500L, 506250L)
+            }
+            Then("Summing counts should return right value") {
+                counts.sum() shouldBe 525152L
+            }
+        }
+    }
+    Given("exercise input") {
+        val input = readResource("inputDay12.txt")!!
+        val springStatesAndGroups = parseSpringStatesAndGroupsLine(input)
+        When("Searching possible states") {
+            val countsM1 = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM1(states, groups, 4) }
+            val countsM2 = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 4) }
+            Then("find the difference between both methods") {
+                val countsZipped = countsM1.zip(countsM2)
+                val lines = input.split("\n")
+                for ( (i, countPair) in countsZipped.withIndex()) {
+                    if (countPair.first != countPair.second) println("difference in counts at $i: ${countPair.first} ${countPair.second} ${lines[i]}")
+                }
+            }
+            Then("Summing counts should return right value") {
+                val sumM1 = countsM1.sum()
+                val sumM2 = countsM2.sum()
+                println("sums $sumM1 $sumM2")
+                sumM1 shouldBeGreaterThan  100659232962052L
+                println(sumM1)
+            }
+        }
+    }
+
 } }
 
 fun parseSpringStatesAndGroupsLine(input: String) = input.split("\n").map { line ->
@@ -192,14 +265,43 @@ fun searchPossibleStates(states: List<SpringState>, groups: List<Int>): List<Lis
     }
 }
 
-fun countPossibleStatesFolded(states: List<SpringState>, groups: List<Int>): Int {
-    val originalStateCount = searchPossibleStates(states, groups).count()
-    if (states[0] == SpringState.OPERATIONAL) { // clearly separated
-        val extendedStateCount =  searchPossibleStates(states + SpringState.UNKNOWN, groups).count()
-        return extendedStateCount * extendedStateCount * extendedStateCount * extendedStateCount * originalStateCount
+/**
+ * Method 1: calculate counts for 0 fold and 1 fold, assume that every additional fold will increase by the same factor
+ */
+fun countPossibleStatesFoldedM1(states: List<SpringState>, groups: List<Int>, foldNr: Int): Long {
+    val fold0Count = searchPossibleStates(states, groups).count().toLong()
+    val fold1Count = searchPossibleStates(states + listOf(SpringState.UNKNOWN) + states, groups + groups).count().toLong()
+    return if (foldNr == 0) fold0Count
+    else if (foldNr == 1) fold1Count
+    else {
+        val foldFact = fold1Count / fold0Count
+        var result = fold1Count
+        for (i in 2 .. foldNr) result *= foldFact
+        result
     }
-    return 0
 }
+
+/**
+ * Method 2: calculate count for an additional arrangement with a separator and calculate count by multiplying according to the fold nr
+ * Special cases: adding the separator at the beginning or the end might lead to different counts.
+ * And sometimes count does not increase at all
+ */
+fun countPossibleStatesFoldedM2(states: List<SpringState>, groups: List<Int>, foldNr: Int): Long {
+    val fold0Count = searchPossibleStates(states, groups).count().toLong()
+    val fold1Count = searchPossibleStates(states + listOf(SpringState.UNKNOWN) + states, groups + groups).count().toLong()
+    if (fold1Count == fold0Count * fold0Count) { // Unknown separator not adding additional arrangements
+        var result = fold0Count
+        for (i in 2 .. foldNr) result *= fold0Count
+        return result
+    }
+    val foldCountA = searchPossibleStates(listOf(SpringState.UNKNOWN) + states, groups).count().toLong()
+    val foldCountB = searchPossibleStates(states + listOf(SpringState.UNKNOWN), groups).count().toLong()
+    val foldFact =max(foldCountA, foldCountB)
+    var result = fold0Count
+    for (i in 1 .. foldNr) result *= foldFact
+    return result
+}
+
 
 
 enum class SpringState { OPERATIONAL, DAMAGED, UNKNOWN }
