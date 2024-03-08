@@ -109,6 +109,10 @@ class Day19Part1: BehaviorSpec() { init {
 
 }}
 
+class Day19Part2: BehaviorSpec() { init {
+
+}}
+
 fun parseWorkflowLine(line: String): Workflow {
     val regex = """(\w+)\{(.*)\}""".toRegex()
     val (name, conditionsStr) = regex
