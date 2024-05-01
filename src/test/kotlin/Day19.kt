@@ -463,6 +463,23 @@ class Day19Part2: BehaviorSpec() { init {
             }
         }
     }
+    Given("workflows of example") {
+        val (workflows, _) = parseWorkflowsAndParts(exampleInputDay19)
+        When("input has been parsed") {
+            Then("it should have been parsed correctly") {
+                workflows.size shouldBe 11
+            }
+        }
+        When("executing the workflows symbolically") {
+            val partRangesList = symbolicExecuteWorkflows(workflows, listOf(fullPartRanges))
+            val sum = partRangesList.sumOf { partRanges ->
+                partRanges.values.fold(1L, { total, next -> total * (next.to - next.from + 1L) })
+            }
+            Then("sum should have the right value") {
+                sum shouldBe 167_409_079_868_000L
+            }
+        }
+    }
 }}
 
 fun parseWorkflowLine(line: String): Workflow {
