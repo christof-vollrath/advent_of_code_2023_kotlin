@@ -214,7 +214,80 @@ class Day19Part2: BehaviorSpec() { init {
         When("applying less on different ranges") {
             applyComparator("a", 100, comparator, mapOf("a" to PartRange(1, 1000))) shouldBe Pair(
                 mapOf("a" to PartRange(1, 99)),
-                mapOf("a" to PartRange(100, MAX_RANGE))
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 100, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                null,
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 101, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(100, 100)),
+                mapOf("a" to PartRange(101, 1000))
+            )
+            applyComparator("a", 10, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                null,
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 100, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                null,
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 100, comparator, mapOf("a" to PartRange(1, 10))) shouldBe Pair(
+                mapOf("a" to PartRange(1, 10)),
+                null
+            )
+            applyComparator("a", 10, comparator, mapOf("a" to PartRange(1, 10))) shouldBe Pair(
+                mapOf("a" to PartRange(1, 9)),
+                mapOf("a" to PartRange(10, 10))
+            )
+            applyComparator("a", 11, comparator, mapOf("a" to PartRange(1, 10))) shouldBe Pair(
+                mapOf("a" to PartRange(1, 10)),
+                null
+            )
+        }
+    }
+    Given("greater comparator") {
+        val comparator = Comparator.GREATER
+        When("applying greater on different ranges") {
+            applyComparator("a", 100, comparator, mapOf("a" to PartRange(1, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(101, 1000)),
+                mapOf("a" to PartRange(1, 100))
+            )
+            applyComparator("a", 99, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(100, 1000)),
+                null
+            )
+            applyComparator("a", 100, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(101, 1000)),
+                mapOf("a" to PartRange(100, 100))
+            )
+            applyComparator("a", 999, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(1000, 1000)),
+                mapOf("a" to PartRange(100, 999))
+            )
+            applyComparator("a", 1010, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                null,
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 1000, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                null,
+                mapOf("a" to PartRange(100, 1000))
+            )
+            applyComparator("a", 10, comparator, mapOf("a" to PartRange(100, 1000))) shouldBe Pair(
+                mapOf("a" to PartRange(100, 1000)),
+                null
+            )
+            applyComparator("a", 11, comparator, mapOf("a" to PartRange(10, 100))) shouldBe Pair(
+                mapOf("a" to PartRange(12, 100)),
+                mapOf("a" to PartRange(10, 11))
+            )
+            applyComparator("a", 10, comparator, mapOf("a" to PartRange(10, 100))) shouldBe Pair(
+                mapOf("a" to PartRange(11, 100)),
+                mapOf("a" to PartRange(10, 10))
+            )
+            applyComparator("a", 9, comparator, mapOf("a" to PartRange(10, 100))) shouldBe Pair(
+                mapOf("a" to PartRange(10, 100)),
+                null
             )
         }
     }
@@ -366,12 +439,12 @@ fun applyComparator(valName: String, number: Int, comparator: Comparator, partRa
     Pair<PartRanges?, PartRanges?> {
     val partRange = partRanges[valName] ?: throw IllegalArgumentException("valName=$valName not found")
     val newPartRange1 = when(comparator) {
-        Comparator.LESS -> if (number > partRange.from) PartRange(partRange.from, max(partRange.to, number - 1)) else null
-        Comparator.GREATER -> if (number < partRange.to) PartRange(min(partRange.from, number + 1), partRange.to) else null
+        Comparator.LESS -> if (number > partRange.from) PartRange(partRange.from, min(partRange.to, number - 1)) else null
+        Comparator.GREATER -> if (number < partRange.to) PartRange(max(partRange.from, number + 1), partRange.to) else null
     }
     val newPartRange2 = when(comparator) {
-        Comparator.LESS -> if (number > partRange.from) PartRange(partRange.from, max(partRange.to, number - 1)) else null
-        Comparator.GREATER -> if (number < partRange.to) PartRange(min(partRange.from, number + 1), partRange.to) else null
+        Comparator.LESS -> if (number <= partRange.to) PartRange(max(partRange.from, number), partRange.to) else null
+        Comparator.GREATER -> if (number >= partRange.from) PartRange(partRange.from, min(partRange.to, number)) else null
     }
     val newPartRanges1 = if (newPartRange1 != null) partRanges.mapValues { if (it.key == valName) newPartRange1 else it.value}
         else null
