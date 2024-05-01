@@ -291,31 +291,131 @@ class Day19Part2: BehaviorSpec() { init {
             )
         }
     }
-    Given("a condition and a ranges") {
+    Given("a condition with a named destination and ranges") {
         val condition = WorkflowCondition(valName = "a", number = 1716, comparator = Comparator.GREATER, namedDestination = NamedDestination("dest"))
         val partRanges = fullPartRanges
         When("executing condition") {
             val conditionResult = symbolicExecuteCondition(condition, partRanges)
             Then("it should split the ranges") {
-                Pair(
-                    conditionResult.first shouldBe listOf(mapOf(
+                conditionResult.first shouldBe (mapOf(
                         "x" to PartRange(1, MAX_RANGE),
                         "m" to PartRange(1, MAX_RANGE),
                         "a" to PartRange(1717, MAX_RANGE),
                         "s" to PartRange(1, MAX_RANGE)
-                    )) to NamedDestination("dest"),
+                    ) to NamedDestination("dest"))
+                conditionResult.second shouldBe mapOf(
+                        "x" to PartRange(1, MAX_RANGE),
+                        "m" to PartRange(1, MAX_RANGE),
+                        "a" to PartRange(1, 1716),
+                        "s" to PartRange(1, MAX_RANGE)
+                    )
+            }
+        }
+    }
+    Given("a condition with an reject destination and ranges") {
+        val condition = WorkflowCondition(valName = "a", number = 200, comparator = Comparator.LESS, namedDestination = RejectDestination)
+        val partRanges = fullPartRanges
+        When("executing condition") {
+            val conditionResult = symbolicExecuteCondition(condition, partRanges)
+            Then("it should split the ranges") {
+                conditionResult.first shouldBe (mapOf(
+                        "x" to PartRange(1, MAX_RANGE),
+                        "m" to PartRange(1, MAX_RANGE),
+                        "a" to PartRange(1, 199),
+                        "s" to PartRange(1, MAX_RANGE)
+                    ) to RejectDestination)
+                conditionResult.second shouldBe mapOf(
+                        "x" to PartRange(1, MAX_RANGE),
+                        "m" to PartRange(1, MAX_RANGE),
+                        "a" to PartRange(200, MAX_RANGE),
+                        "s" to PartRange(1, MAX_RANGE)
+                    )
+            }
+        }
+    }
+    Given("a workflow line with only accept"){
+        val workflow = parseWorkflowLine("accept{A}")
+        When("executing the workflow line symbolically") {
+            val partRanges = symbolicExecuteWorkflowLine(workflow, fullPartRanges)
+            Then("it should return the part full ranges") {
+                partRanges shouldBe Pair(emptyList(), listOf(fullPartRanges))
+            }
+        }
+    }
+    Given("a workflow line with only reject"){
+        val workflow = parseWorkflowLine("accept{R}")
+        When("executing the workflow line symbolically") {
+            val partRanges = symbolicExecuteWorkflowLine(workflow, fullPartRanges)
+            Then("it should return null as accepted ranges") {
+                partRanges shouldBe Pair(emptyList(), emptyList())
+            }
+        }
+    }
+    Given("workflow line with accept and reject"){
+        val workflow = parseWorkflowLine("pv{a>1716:R,A}")
+        When("executing the workflow line symbolically") {
+            val partRanges = symbolicExecuteWorkflowLine(workflow, fullPartRanges)
+            Then("it should have limited the part ranges") {
+                partRanges shouldBe Pair(emptyList(), listOf(mapOf(
+                    "x" to PartRange(1, MAX_RANGE),
+                    "m" to PartRange(1, MAX_RANGE),
+                    "a" to PartRange(1, 1716),
+                    "s" to PartRange(1, MAX_RANGE)
+                )))
+            }
+        }
+    }
+    Given("a workflow line with several accepts and rejects"){
+        val workflow = parseWorkflowLine("a{a>1000:R,a<100:A,a>500:R,a<600:A}")
+        When("executing the workflow line symbolically") {
+            val partRanges = symbolicExecuteWorkflowLine(workflow, fullPartRanges)
+            Then("it should return several ranges") {
+                partRanges shouldBe Pair(emptyList(),
+                    listOf(
+                        mapOf(
+                            "x" to PartRange(1, MAX_RANGE),
+                            "m" to PartRange(1, MAX_RANGE),
+                            "a" to PartRange(1, 99),
+                            "s" to PartRange(1, MAX_RANGE)
+                        ),
+                        mapOf(
+                            "x" to PartRange(1, MAX_RANGE),
+                            "m" to PartRange(1, MAX_RANGE),
+                            "a" to PartRange(100, 500),
+                            "s" to PartRange(1, MAX_RANGE)
+                        )
+
+                    )
+                )
+            }
+        }
+    }
+    Given("a workflow line which calls another line"){
+        val workflow = parseWorkflowLine("a{a>1716:b,A}")
+        When("executing the workflow line symbolically") {
+            val partRanges = symbolicExecuteWorkflowLine(workflow, fullPartRanges)
+            Then("it should have limited the part ranges and return the other destination") {
+                partRanges shouldBe Pair(
+                    listOf(
+                        mapOf(
+                            "x" to PartRange(1, MAX_RANGE),
+                            "m" to PartRange(1, MAX_RANGE),
+                            "a" to PartRange(1717, MAX_RANGE),
+                            "s" to PartRange(1, MAX_RANGE)
+                        ) to NamedDestination("b")
+                    ),
                     listOf(mapOf(
                         "x" to PartRange(1, MAX_RANGE),
                         "m" to PartRange(1, MAX_RANGE),
                         "a" to PartRange(1, 1716),
                         "s" to PartRange(1, MAX_RANGE)
-                    )))
+                    ))
+                )
             }
         }
-
     }
-    Given("an empty workflow"){
-        val workflows = emptyList<Workflow>()
+    Given("an workflow which accepts everything"){
+        val workflows = listOf(parseWorkflowLine("in{A}"))
         When("executing the workflows symbolically") {
             val partRanges = symbolicExecuteWorkflows(workflows, listOf(fullPartRanges))
             Then("it should have the full part ranges as result") {
@@ -324,7 +424,7 @@ class Day19Part2: BehaviorSpec() { init {
         }
     }
     Given("a simple workflow"){
-        val workflows = listOf(parseWorkflowLine("pv{a>1716:R,A}"))
+        val workflows = listOf(parseWorkflowLine("in{a>1716:R,A}"))
         When("executing the workflows symbolically") {
             val partRanges = symbolicExecuteWorkflows(workflows, listOf(fullPartRanges))
             Then("it should have limited the part ranges") {
@@ -334,6 +434,32 @@ class Day19Part2: BehaviorSpec() { init {
                     "a" to PartRange(1, 1716),
                     "s" to PartRange(1, MAX_RANGE)
                 ))
+            }
+        }
+    }
+    Given("a nested workflow"){
+        val workflows = listOf(
+            parseWorkflowLine("in{a>500:w1,A}"),
+            parseWorkflowLine("w1{a>800:R,w2}"),
+            parseWorkflowLine("w2{s<700:A,R}")
+        )
+        When("executing the workflows symbolically") {
+            val partRanges = symbolicExecuteWorkflows(workflows, listOf(fullPartRanges))
+            Then("it should have limited the part ranges") {
+                partRanges shouldBe listOf(
+                    mapOf(
+                        "x" to PartRange(1, MAX_RANGE),
+                        "m" to PartRange(1, MAX_RANGE),
+                        "a" to PartRange(1, 500),
+                        "s" to PartRange(1, MAX_RANGE)
+                    ),
+                    mapOf(
+                        "x" to PartRange(1, MAX_RANGE),
+                        "m" to PartRange(1, MAX_RANGE),
+                        "a" to PartRange(501, 800),
+                        "s" to PartRange(1, 699)
+                    ),
+                )
             }
         }
     }
@@ -423,17 +549,63 @@ fun executeWorkflows(workflows: List<Workflow>, part: Map<String, Int>): Pair<Ab
 }
 
 fun symbolicExecuteWorkflows(workflows: List<Workflow>, partRangesList: List<PartRanges>): List<PartRanges> {
-    return partRangesList
+    val workflowMap = workflows.associateBy { it.name }
+    var currentBranches = partRangesList.map { it to NamedDestination("in") }
+    val accepted = mutableListOf<PartRanges>()
+    while (currentBranches.isNotEmpty()) {
+        val nextBranches = mutableListOf<Pair<PartRanges, NamedDestination>>()
+        for (currentBranch in currentBranches) {
+            val currentWorkflow = workflowMap[currentBranch.second.label] ?: throw IllegalArgumentException("Workflow ${currentBranch.second.label} not found")
+            val executionResult = symbolicExecuteWorkflowLine(currentWorkflow, currentBranch.first)
+            accepted.addAll(executionResult.second)
+            nextBranches.addAll(executionResult.first)
+        }
+        currentBranches = nextBranches
+    }
+    return accepted
 }
 
-fun symbolicExecuteCondition(condition: WorkflowCondition, partRanges: PartRanges):
-    Pair<
-        Pair<PartRanges, AbstractDestination>?, PartRanges?> {
-    val newRangesPair = applyComparator(condition.valName, condition.number, condition.comparator, partRanges)
-    return Pair(
-        if (newRangesPair.first != null) newRangesPair.first!! to condition.namedDestination else null,
-        newRangesPair.second)
+fun symbolicExecuteWorkflowLine(workflow: Workflow, partRanges: PartRanges): Pair<List<Pair<PartRanges, NamedDestination>>, List<PartRanges>> {
+    var currentRanges = partRanges
+    val branches = mutableListOf<Pair<PartRanges, NamedDestination>>()
+    val accepted = mutableListOf<PartRanges>()
+    for (condition in workflow.conditions) {
+        val result = symbolicExecuteCondition(condition, currentRanges)
+        val branch = result.first
+        if (branch != null) {
+            val destination = branch.second
+            when (destination) {
+                is NamedDestination -> branches += Pair(branch.first, destination)
+                is AcceptDestination -> accepted += branch.first
+                is RejectDestination -> {}
+            }
+        }
+        val nextRanges = result.second ?: return Pair(branches, accepted) // break when nothing left
+        currentRanges = nextRanges
+    }
+    accepted += currentRanges
+    return Pair(branches, accepted)
 }
+
+fun symbolicExecuteCondition(condition: AbstractWorkflowCondition, partRanges: PartRanges):
+    Pair<
+        Pair<PartRanges, AbstractDestination>?, PartRanges?> =
+    when(condition) {
+        is WorkflowCondition -> {
+            val newRangesPair = applyComparator(condition.valName, condition.number, condition.comparator, partRanges)
+            Pair(
+                if (newRangesPair.first != null) newRangesPair.first!! to condition.namedDestination else null,
+                newRangesPair.second)
+        }
+        is FinalCondition -> {
+            when(val destination = condition.destination) {
+                is AcceptDestination -> Pair(null, partRanges)
+                is RejectDestination -> Pair(null, null)
+                is NamedDestination -> Pair(partRanges to destination, null)
+            }
+        }
+    }
+
 
 fun applyComparator(valName: String, number: Int, comparator: Comparator, partRanges: Map<String, PartRange>):
     Pair<PartRanges?, PartRanges?> {
