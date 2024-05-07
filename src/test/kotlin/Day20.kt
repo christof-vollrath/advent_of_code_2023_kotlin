@@ -189,6 +189,14 @@ class Day20Part1: BehaviorSpec() { init {
                     simulationState.simulationStatistics.nrHighPulsesSent shouldBe 11
                 }
             }
+            When("pushing it in total 1000 times") {
+                repeat(1000-4) { simulatePushButton(moduleMap, simulationState) }
+
+                Then("statistics should be right") {
+                    simulationState.simulationStatistics.nrLowPulsesSent shouldBe 4250 // Including button
+                    simulationState.simulationStatistics.nrHighPulsesSent shouldBe 2750
+                }
+            }
         }
     }
 
