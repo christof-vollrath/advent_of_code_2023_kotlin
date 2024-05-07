@@ -199,6 +199,26 @@ class Day20Part1: BehaviorSpec() { init {
             }
         }
     }
+    Given("exercise input") {
+        val exerciseInput = readResource("inputDay20.txt")!!
+        When("parsing module map") {
+            val (_, moduleMap) = parseModuleConfiguration(exerciseInput)
+            Then("the right number should be parsed") {
+                moduleMap.size shouldBe 58 + 1 // One test module 'x'
+            }
+            When("pushing the button 1000 times") {
+                val simulationState = SimulationState()
+                repeat(1000) { simulatePushButton(moduleMap, simulationState) }
+                Then("statistics should be right") {
+                    simulationState.simulationStatistics.nrLowPulsesSent shouldBe 18829 // Including button
+                    simulationState.simulationStatistics.nrHighPulsesSent shouldBe 46016
+                    simulationState.simulationStatistics.nrLowPulsesSent *
+                            simulationState.simulationStatistics.nrHighPulsesSent shouldBe 866435264
+                }
+
+            }
+        }
+    }
 
 } }
 
