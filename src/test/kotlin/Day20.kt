@@ -1,6 +1,7 @@
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 
 val exampleInputDay20simple = """
 broadcaster -> a, b, c
@@ -16,7 +17,7 @@ broadcaster -> a
 %b -> con
 &con -> output""".trimIndent()
 
-class Day20Part1: BehaviorSpec() { init {
+class Day20Part1 : BehaviorSpec() { init {
     Given("the simple example module configuration") {
         val (moduleConfiguration, moduleMap) = parseModuleConfiguration(exampleInputDay20simple)
         When("configuration") {
@@ -222,6 +223,146 @@ class Day20Part1: BehaviorSpec() { init {
 
 } }
 
+class Day20Part2 : BehaviorSpec() { init {
+    Given("the more interesting example") {
+        val (_, moduleMap) = parseModuleConfiguration(exampleInputDay20interesting)
+        When("pushing the button until inv gets a low pulse") {
+            val nr = pushButtonUntil(moduleMap, { it.moduleInputStates.getInputState("b", "inv") == 1 })
+            Then("nr of button pushes should be two") {
+                nr shouldBe 2
+            }
+        }
+    }
+    Given("exercise input") {
+        val exerciseInput = readResource("inputDay20.txt")!!
+        When("parsing module map") {
+            val (_, moduleMap) = parseModuleConfiguration(exerciseInput)
+            Then("the right number should be parsed") {
+                moduleMap.size shouldBe 58 + 1 // One test module 'x'
+            }
+            Then("rx should have the right type and connections") {
+                val rx = moduleMap["rx"]
+                rx.shouldBeInstanceOf<TestModule>()
+                rx.connectedFrom.map { it.name } shouldBe listOf("dg")
+            }
+            Then("dg should have the right type and connections") {
+                val dg = moduleMap["dg"]
+                dg.shouldBeInstanceOf<Conjunction>()
+                dg.connectedFrom.map { it.name } shouldBe listOf("lk", "zv", "sp", "xt")
+            }
+            Then("lk should have the right type and connections") {
+                val lk = moduleMap["lk"]
+                lk.shouldBeInstanceOf<Conjunction>()
+                lk.connectedFrom.map { it.name } shouldBe listOf("jc")
+            }
+            Then("zv should have the right type and connections") {
+                val zv = moduleMap["zv"]
+                zv.shouldBeInstanceOf<Conjunction>()
+                zv.connectedFrom.map { it.name } shouldBe listOf("vv")
+            }
+            Then("sp should have the right type and connections") {
+                val sp = moduleMap["sp"]
+                sp.shouldBeInstanceOf<Conjunction>()
+                sp.connectedFrom.map { it.name } shouldBe listOf("xq")
+            }
+            Then("xt should have the right type and connections") {
+                val xt = moduleMap["xt"]
+                xt.shouldBeInstanceOf<Conjunction>()
+                xt.connectedFrom.map { it.name } shouldBe listOf("dv")
+            }
+            Then("jc should have the right type and connections") {
+                val jc = moduleMap["jc"]
+                jc.shouldBeInstanceOf<Conjunction>()
+                jc.connectedFrom.map { it.name } shouldBe listOf("kz", "mc", "tx", "mg", "cd", "xc", "tp", "hl", "qb", "rv")
+            }
+            Then("vv should have the right type and connections") {
+                val vv = moduleMap["vv"]
+                vv.shouldBeInstanceOf<Conjunction>()
+                vv.connectedFrom.map { it.name } shouldBe listOf("sg", "xx", "lc", "vh", "cc", "vn", "jq", "kx", "cz")
+            }
+            Then("xq should have the right type and connections") {
+                val xq = moduleMap["xq"]
+                xq.shouldBeInstanceOf<Conjunction>()
+                xq.connectedFrom.map { it.name } shouldBe listOf("hg", "gt", "ln", "nt", "nj", "mq", "sl", "pt")
+            }
+            Then("dv should have the right type and connections") {
+                val dv = moduleMap["dv"]
+                dv.shouldBeInstanceOf<Conjunction>()
+                dv.connectedFrom.map { it.name } shouldBe listOf("vp", "nv", "td", "dm", "rc", "gf", "rm", "jt", "dc")
+            }
+            When("waiting for rx going to 0") {
+                val nr = pushButtonUntil(moduleMap, { it.moduleInputStates.getInputState("rx", "dg") == 0 })
+                Then("should take two long") {
+                    nr shouldBe -1
+                }
+            }
+            When("checking for lk->dg high") {
+                val nrs = findPushNrsWhere(moduleMap, { it.moduleInputStates.getInputState("dg", "lk") == 1 })
+                Then("it should find push nrs") {
+                    nrs shouldBe emptyList()
+                }
+            }
+            When("checking for zv->dg high") {
+                val nrs = findPushNrsWhere(moduleMap, { it.moduleInputStates.getInputState("dg", "zv") == 1 })
+                Then("it should find push nrs") {
+                    nrs shouldBe emptyList()
+                }
+            }
+            /*
+            When("finding changes in xq") {
+                val simulationState = SimulationState()
+                for (nr in 1..1000) {
+                    simulatePushButton(moduleMap, simulationState)
+                    val h1 = listOf("hg", "gt", "ln", "nt", "nj", "mq", "sl", "pt").map { from ->
+                        simulationState.moduleInputStates.getInputState("xq", from)
+                    }
+                    println(h1)
+                    val h2 = simulationState.moduleInputStates.getInputState("sp", "xq")
+                    println(h2)
+                    if (h2 != 1) println("!!!!")
+                }
+            }
+
+             */
+            When("finding all modules which lead to rx transitively") {
+                val rx = moduleMap["rx"]!!
+                val transientConntectedFrom = findTransientConnectedFrom(rx)
+                Then("it will find all the modules execpt rx because everything is connected to it") {
+                    transientConntectedFrom.size shouldBe moduleMap.size - 1
+                }
+            }
+            When("finding all modules which lead to jc transitively") {
+                val rx = moduleMap["jc"]!!
+                val transientConntectedFrom = findTransientConnectedFrom(rx)
+                Then("it will find only some modulest") {
+                    transientConntectedFrom.size shouldBe 13
+                }
+                When("creating a reduced module map") {
+                    val reducedMap = reduceConnectedTo(transientConntectedFrom + listOf(rx))
+                    Then("it should still have all modules") {
+                        reducedMap.size shouldBe 14
+                    }
+                    When("checking for jc->mg low") {
+                        val simulationState = SimulationState()
+                        for (nr in 1..10_000) {
+                            simulatePushButton(reducedMap, simulationState)
+                            val h1 = listOf("kz", "mc", "tx", "mg", "cd", "xc", "tp", "hl", "qb", "rv", "xv", "ps").map { from ->
+                                simulationState.moduleInputStates.getInputState("jc", from)
+                            }
+                            println(h1)
+                            val h2 = simulationState.moduleInputStates.getInputState("mg", "jc")
+                            println("$nr $h2")
+                            if (h2 != 1) println("!!!! + $nr")
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+} }
+
 fun  ModuleStates.getModuleState(name: String) = getOrDefault(name, 0)
 fun  ModuleStates.setModuleState(name: String, value: Int) = put(name, value)
 
@@ -333,6 +474,7 @@ fun simulatePushButton(moduleMap: Map<String, Module>, simulationState: Simulati
                         nextPulses += sendToConnected(currentModule, nextStateValue)
                     }
                 }
+                is TestModule -> {}
             }
         }
         currentPulses = nextPulses
@@ -340,7 +482,67 @@ fun simulatePushButton(moduleMap: Map<String, Module>, simulationState: Simulati
     return simulationState
 }
 
-abstract class Module {
+fun pushButtonUntil(moduleMap: Map<String, Module>, check: (SimulationState) -> Boolean, maxRepeats: Int = 10_000): Int {
+    val simulationState = SimulationState()
+    var nr = 0
+    do {
+        if (nr >= maxRepeats) return -1
+        simulatePushButton(moduleMap, simulationState)
+        nr++
+    } while (!check(simulationState))
+    return nr
+}
+
+fun findPushNrsWhere(moduleMap: Map<String, Module>, check: (SimulationState) -> Boolean, maxRepeats: Int = 10_000): List<Int> {
+    val simulationState = SimulationState()
+    var nr = 0
+    val result = mutableListOf<Int>()
+    while (nr <= maxRepeats){
+        simulatePushButton(moduleMap, simulationState)
+        if (check(simulationState)) result += nr
+        nr++
+    }
+    return result
+}
+
+fun findTransientConnectedFrom(startModule: Module): List<Module> {
+    val result = mutableListOf<Module>()
+    val visited = mutableSetOf<Module>(startModule)
+    var currentModules = listOf(startModule)
+    while(currentModules.isNotEmpty()) {
+        val nextModules = mutableListOf<Module>()
+        for (currentModule in currentModules) {
+            val connectedFrom = currentModule.connectedFrom
+            val notYetVisited = connectedFrom.filter { ! visited.contains(it) }
+            visited.addAll(notYetVisited)
+            nextModules.addAll(notYetVisited)
+            result.addAll(notYetVisited)
+            println("${currentModule.name} ${currentModule.javaClass} <- ${connectedFrom.map{it.name}}")
+        }
+        currentModules = nextModules
+    }
+    return result
+}
+
+private fun reduceConnectedTo(modules: List<Module>): Map<String, Module> {
+    fun filterConnectedTo(modules: List<Module>, all: Set<Module>) = modules.filter { all.contains(it )}
+
+    val allModules = modules.toSet()
+    val reducedModules = modules.map { module ->
+        val result = when(module) {
+            is Conjunction -> Conjunction(module.name)
+            is FlipFlop -> FlipFlop(module.name)
+            is BroadCast -> BroadCast(module.name)
+            is TestModule -> TestModule(module.name)
+        }
+        result.connectedFrom = module.connectedFrom
+        result.connectedTo = filterConnectedTo(module.connectedTo, allModules)
+        result
+    }
+    return reducedModules.associateBy( { it.name } )
+}
+
+sealed class Module {
     abstract val name: String
     var connectedTo: List<Module> = emptyList()
     var connectedFrom: List<Module> = emptyList()
@@ -354,6 +556,7 @@ data class Pulse(val value: Int, val to: String)
 
 data class SimulationState(val moduleStates: ModuleStates = mutableMapOf(),
     val moduleInputStates: ModuleInputStates = mutableMapOf(),
-    val simulationStatistics: SimulationStatistics = SimulationStatistics())
+    val simulationStatistics: SimulationStatistics = SimulationStatistics(),
+    var lowPulseFound: Boolean = false)
 typealias ModuleStates = MutableMap<String, Int>
 typealias ModuleInputStates = MutableMap<String, MutableMap<String, Int>>
