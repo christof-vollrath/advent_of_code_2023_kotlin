@@ -140,15 +140,17 @@ else {
     }
 }
 
-fun typeRank(cards: String) = when {
-    checkFiveOfAKind(cards) -> 7
-    checkFourOfAKind(cards) -> 6
-    checkFullHouse(cards) -> 5
-    checkThreeOfAKind(cards) -> 4
-    checkTwoPairs(cards) -> 3
-    checkOnePair(cards) -> 2
-    checkHighCard(cards) -> 1
-    else -> throw IllegalArgumentException("No rank for $cards")
+fun typeRank(cards: String): Int {
+    val groupedCardsSizes = cards.groupBy { it }.values.sortedByDescending { it.size }.map { it.size }
+    return when {
+            groupedCardsSizes.size == 1 -> 7
+            groupedCardsSizes[0] == 4 -> 6
+            groupedCardsSizes[0] == 3 && groupedCardsSizes[1] == 2 -> 5
+            groupedCardsSizes[0] == 3 -> 4
+            groupedCardsSizes[0] == 2 && groupedCardsSizes[1] == 2 -> 3
+            groupedCardsSizes[0] == 2 -> 2
+            else -> 1
+        }
 }
 
 fun compareHands(hand1: String, hand2: String): Int {
