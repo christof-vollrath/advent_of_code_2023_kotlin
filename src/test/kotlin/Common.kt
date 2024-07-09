@@ -50,3 +50,17 @@ data class Coord2(val x: Int, val y: Int) {
 }
 typealias Plane<E>  = List<List<E>>
 operator fun <E> Plane<E>.get(coord: Coord2) = this[coord.y][coord.x]
+
+fun lcm(a: Long, b: Long) = abs(a * b) / gcd(a, b)
+fun lcm(numbers: List<Long>) = numbers.drop(1).fold(numbers[0]) { acc, curr ->
+    lcm(acc, curr)
+}
+
+tailrec fun gcd(a: Long, b: Long): Long =
+    when {
+        a == 0L -> b
+        b == 0L -> a
+        a > b -> gcd(a-b, b)
+        else -> gcd(a, b-a)
+    }
+
