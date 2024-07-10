@@ -21,7 +21,7 @@ class Day09Part1: BehaviorSpec() { init {
                     prediction shouldBe 18
                 }
             }
-            When("finding prediction for all examples") {
+            When("finding predictions for all examples") {
                 val predictions = findPredictions(histories)
                 Then("predictions should be right") {
                     predictions shouldBe listOf(18, 28, 68)
@@ -32,8 +32,39 @@ class Day09Part1: BehaviorSpec() { init {
     Given("exercise input") {
         val histories = parseHistories(readResource("inputDay09.txt")!!)
         histories.size shouldBe 200
-        When("finding prediction for all input lines and summing") {
+        When("finding predictions for all input lines and summing") {
             val predictions = findPredictions(histories).sum()
+            Then("it should have the result") {
+                predictions shouldBe 1_782_868_781
+            }
+        }
+    }
+} }
+
+class Day09Part2: BehaviorSpec() { init {
+    Given("example input") {
+        When("parsing the input") {
+            val histories = parseHistories(exampleInputDay09)
+
+            When("finding backward prediction for first example") {
+                val prediction = findBackwardPrediction(histories[2])
+                Then("prediction should be right") {
+                    prediction shouldBe 5
+                }
+            }
+            When("finding backward predictions for all examples") {
+                val predictions = findBackwardPredictions(histories)
+                Then("predictions should be right") {
+                    predictions shouldBe listOf(-3, 0, 5)
+                }
+            }
+        }
+    }
+    Given("exercise input") {
+        val histories = parseHistories(readResource("inputDay09.txt")!!)
+        histories.size shouldBe 200
+        When("finding backward predictions for all input lines and summing") {
+            val predictions = findBackwardPredictions(histories).sum()
             Then("it should have the result") {
                 predictions shouldBe 1_782_868_781
             }
@@ -57,3 +88,16 @@ fun findPrediction(list: List<Int>): Int =
     }.sumOf { it.last() }
 
 fun findPredictions(sequences: List<List<Int>>) = sequences.map { findPrediction(it) }
+
+fun findBackwardPrediction(list: List<Int>) =
+    sequence {
+        var curr = list
+        do {
+            yield(curr)
+            curr = curr.zip(curr.drop(1)).map { (left, right) -> right - left }
+        } while (curr.any { it != 0 })
+    }.toList().reversed().fold(0) { acc, curr->
+        curr.first() - acc
+    }
+
+fun findBackwardPredictions(sequences: List<List<Int>>) = sequences.map { findBackwardPrediction(it) }
