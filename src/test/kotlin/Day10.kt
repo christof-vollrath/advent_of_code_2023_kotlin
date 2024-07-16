@@ -272,8 +272,8 @@ fun replaceStart(coord: Coord2, maze: Maze): Char = // find what the start tile 
 fun countInsideTiles(loop: List<Pair<Coord2, Char>>, maze: Maze): Int {
     val loopCoords = loop.map { it.first }
     val loopCoordSet = loop.map { it.first }.toSet()
-    val maxX = loopCoords.map { it.x }.max()
-    val maxY = loopCoords.map { it.y }.max()
+    val maxX = loopCoords.maxOfOrNull { it.x }!!
+    val maxY = loopCoords.maxOfOrNull { it.y }!!
     var count = 0
     for (y in 0 .. maxY) {
         val stateMachine = CountTileStateMachine(loopCoordSet, maze)
@@ -286,28 +286,24 @@ fun countInsideTiles(loop: List<Pair<Coord2, Char>>, maze: Maze): Int {
     return count
 }
 
-class CountTileStateMachine(val loopCoords: Set<Coord2>, val  maze: Maze, var isInside: Boolean = false) {
-    var onHorizontalLine = false
-    var startTile: Char? = null
+class CountTileStateMachine(private val loopCoords: Set<Coord2>, private val  maze: Maze, var isInside: Boolean = false) {
+    private var onHorizontalLine = false
+    private var startTile: Char? = null
 
     fun handleTile(coord: Coord2) {
         if (loopCoords.contains(coord)) {
             val currTile = if (maze[coord] == 'S') replaceStart(coord, maze) else maze[coord]
             when(currTile) {
-                'L', 'F' -> if (onHorizontalLine) throw IllegalArgumentException("On horizontal line $currTile not expected coord=$coord")
-                            else {
+                'L', 'F' -> if (! onHorizontalLine) {
                                 onHorizontalLine = true
                                 startTile = currTile
-                            }
-                'J', '7' -> {
-                    if (!onHorizontalLine) throw IllegalArgumentException("Outside a horizontal line $currTile not expected coord=$coord")
-                    else {
-                        onHorizontalLine = false
-                        if (currTile == '7' && startTile == 'L' || currTile == 'J' && startTile == 'F')
-                            isInside = ! isInside
-                        startTile = null
-                    }
-                }
+                            } else throw IllegalArgumentException("On horizontal line $currTile not expected coord=$coord")
+                'J', '7' -> if (onHorizontalLine) {
+                                onHorizontalLine = false
+                                if (currTile == '7' && startTile == 'L' || currTile == 'J' && startTile == 'F')
+                                    isInside = ! isInside
+                                startTile = null
+                            } else throw IllegalArgumentException("Outside a horizontal line $currTile not expected coord=$coord")
                 '-' ->  if (!onHorizontalLine) throw IllegalArgumentException("Outside a horizontal line $currTile not expected coord=$coord")
                 '.', '|' ->  if (onHorizontalLine) throw IllegalArgumentException("On a horizontal line $currTile not expected coord=$coord")
             }
