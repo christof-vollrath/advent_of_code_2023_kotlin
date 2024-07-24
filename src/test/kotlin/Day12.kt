@@ -88,6 +88,62 @@ class Day12Part1: BehaviorSpec() { init {
             )
         }
     }
+    Given("find all groups of operational springs") {
+        Given("a simple group list") {
+            val groups = listOf(1, 1, 3)
+            When("searching for intervals") {
+                val intervals = searchOperationalGroups(groups, 7)
+                Then("it should find the right operational groups") {
+                    intervals shouldBe listOf(listOf(0, 1, 1))
+                }
+            }
+            When("searching for intervals with more choices") {
+                val intervals1 = searchOperationalGroups(groups, 8)
+                Then("it should find the right intervals") {
+                    intervals1 shouldBe listOf(listOf(0, 1, 1), listOf(0, 1, 2), listOf(0, 2, 1), listOf(1, 1, 1))
+                }
+            }
+            When("searching for intervals with even more choices") {
+                val intervals1 = searchOperationalGroups(groups, 9)
+                Then("it should find the right intervals") {
+                    intervals1 shouldBe listOf(listOf(0, 1, 1), listOf(0, 1, 2), listOf(0, 1, 3),
+                        listOf(0, 2, 1), listOf(0, 2, 2), listOf(0, 3, 1),
+                        listOf(1, 1, 1), listOf(1, 1, 2), listOf(1, 2, 1), listOf(2, 1, 1)
+                    )
+                }
+            }
+        }
+    }
+    Given("condition records and operational/damaged groups") {
+        Given("a operational and a damaged group") {
+            val damagedGroups = listOf(1, 1, 3)
+            val operationalGroups = listOf(0, 1, 1)
+            When("checking if groups match to records") {
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#.###")) shouldBe true
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#.###.")) shouldBe true // ignore operational at the end
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#??##")) shouldBe true
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#??##?")) shouldBe true // ignore operational at the end
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates(".#.#.###")) shouldBe false
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("###.###")) shouldBe false
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#..###")) shouldBe false
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#.##")) shouldBe false
+                matchGroupsAndRecords(damagedGroups, operationalGroups, parseSpringStates("#.#.####")) shouldBe false
+            }
+        }
+    }
+    Given("searching possible states starting with groups") {
+        val springStatesAndGroups = parseSpringStatesAndGroupsLine(exampleInputDay12)
+        springStatesAndGroups.size shouldBe 6
+        When("Searching possible states from groups") {
+            val counts = springStatesAndGroups.map { (states, groups) -> searchPossibleOperationalGroups(states, groups).count() }
+            Then("it should have found the right counts") {
+                counts shouldBe listOf(1, 4, 1, 1, 4, 10)
+            }
+            Then("Summing counts should return right value") {
+                counts.sum() shouldBe 21
+            }
+        }
+    }
 
     Given("exercise input") {
         val springStatesAndGroups = parseSpringStatesAndGroupsLine(readResource("inputDay12.txt")!!)
@@ -158,7 +214,7 @@ class Day12Part2: BehaviorSpec() { init {
     Given("exercise input") {
         val input = readResource("inputDay12.txt")!!
         val springStatesAndGroups = parseSpringStatesAndGroupsLine(input)
-        When("Searching possible states") {
+        xWhen("Searching possible states") {
             val countsM1 = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM1(states, groups, 4) }
             val countsM2 = springStatesAndGroups.map { (states, groups) -> countPossibleStatesFoldedM2(states, groups, 4) }
             Then("find the difference between both methods") {
@@ -263,6 +319,64 @@ fun searchPossibleStates(states: List<SpringState>, groups: List<Int>): List<Lis
         val filteredReplacedUnknown = replacedUnknown.filter { compareDamagedGroupsPartially(it, groups) } // Keep only groups with match
         filteredReplacedUnknown.flatMap { searchPossibleStates(it, groups) }
     }
+}
+
+fun searchOperationalGroups(damagedGroups: List<Int>, length: Int, first: Boolean = true): List<List<Int>> {
+    val sumLengthDamaged = damagedGroups.sum()
+    val minimalSeparatorLength = damagedGroups.size - 1
+    val range = (if (first) 0 else 1 )..length-sumLengthDamaged-minimalSeparatorLength
+    return sequence {
+        val nextDamagedGroups = damagedGroups.drop(1)
+        val currDamagedGroup = damagedGroups.first()
+        for (i in range) {
+            val currList = listOf(i)
+            if (nextDamagedGroups.isEmpty()) yield(currList)
+            else {
+                val groups = searchOperationalGroups(damagedGroups.drop(1), length - currDamagedGroup- i, false)
+                groups.forEach {
+                    yield(listOf(i) + it)
+                }
+            }
+        }
+    }.toList()
+}
+
+fun matchGroupsAndRecords(damagedGroups: List<Int>, operationalGroups: List<Int>, records: List<SpringState>): Boolean {
+    var recordsI = 0
+    for(i in damagedGroups.indices) {
+        val damagedGroup = damagedGroups[i]
+        val operationalGroup = operationalGroups[i]
+        for (ogi in 0 until operationalGroup) {
+            if (recordsI < records.size && records[recordsI] != SpringState.OPERATIONAL && records[recordsI] != SpringState.UNKNOWN) return false
+            recordsI++
+        }
+        for (dgi in 0 until damagedGroup) {
+            if (recordsI < records.size && records[recordsI] != SpringState.DAMAGED && records[recordsI] != SpringState.UNKNOWN) return false
+            recordsI++
+        }
+        if (recordsI > records.size) return false
+    }
+    while(recordsI < records.size) { // check remaining records
+        if (records[recordsI] != SpringState.OPERATIONAL && records[recordsI] != SpringState.UNKNOWN) return false
+        recordsI++
+    }
+    return true
+}
+
+/*
+fun searchPossibleOperationalGroups(records: List<SpringState>, damagedGroups: List<Int>) =
+   searchOperationalGroups(damagedGroups, records.size).filter {
+       matchGroupsAndRecords(damagedGroups, it, records)
+   }
+
+
+ */
+fun searchPossibleOperationalGroups(records: List<SpringState>, damagedGroups: List<Int>): List<List<Int>> {
+    val allGroups = searchOperationalGroups(damagedGroups, records.size)
+    val result = allGroups.filter {
+        matchGroupsAndRecords(damagedGroups, it, records)
+    }
+    return result
 }
 
 /**
